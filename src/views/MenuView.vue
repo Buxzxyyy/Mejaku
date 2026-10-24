@@ -1112,16 +1112,12 @@ function clearSearch() {
     font-size: 13px;
   }
 
-  /* Fix: category nav must stay sticky and not be hidden behind other content */
+  /* Fix: category nav stays sticky - NO negative margin (breaks sticky!) */
   .categories-nav-sticky {
     top: 60px;
     padding: 8px 0;
     margin-bottom: 16px;
-    /* Extend left/right to bleed to screen edges on mobile for scroll feel */
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 16px;
-    padding-right: 16px;
+    /* Keep within normal flow - do not use negative margin, it breaks position:sticky */
   }
 
   /* MASALAH 4 FIX: Filter category wrap jadi 2-kolom grid di mobile */
@@ -1198,8 +1194,13 @@ function clearSearch() {
   }
 
   .btn-checkout-floating {
-    font-size: 13px;
-    padding: 10px 16px;
+    font-size: 12px;
+    padding: 10px 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Title row: prevent table tag from being pushed down */

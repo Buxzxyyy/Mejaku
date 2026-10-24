@@ -465,7 +465,10 @@ function submitRating() {
               @click="handleAddToCart"
             >
               <ShoppingBag :size="20" />
-              <span>Tambahkan ke Pesanan Meja · {{ formatRupiah(currentButtonTotal) }}</span>
+              <!-- Desktop: full text with price -->
+              <span class="btn-text-full">Tambahkan ke Pesanan Meja · {{ formatRupiah(currentButtonTotal) }}</span>
+              <!-- Mobile: short text only -->
+              <span class="btn-text-short">Tambahkan ke Pesanan</span>
             </button>
           </div>
         </div>
@@ -897,8 +900,25 @@ function submitRating() {
   }
 }
 
-/* ─── Mobile (≤ 640px) Fixes for Realme 8 ─── */
+/* Dual button text: full on desktop, short on mobile */
+.btn-text-full {
+  display: inline;
+}
+
+.btn-text-short {
+  display: none;
+}
+
+/* Mobile (≤ 640px) Fixes for Realme 8 */
 @media (max-width: 640px) {
+  /* Dual span toggle: hide full text, show short text */
+  .btn-text-full {
+    display: none;
+  }
+  .btn-text-short {
+    display: inline;
+  }
+
   .detail-main-content {
     padding-bottom: 48px;
   }
@@ -921,21 +941,14 @@ function submitRating() {
     flex-shrink: 0;
   }
 
-  /* "Tambahkan ke Pesanan" button: smaller text & padding on mobile, takes remaining width */
+  /* "Tambahkan ke Pesanan" button: shorter + compact row on mobile */
   .btn-add-order {
-    padding: 12px 14px;
-    font-size: 13px;
+    padding: 13px 14px;
+    font-size: 14px;
     flex: 1;
     justify-content: center;
     min-width: 0;
-  }
-
-  /* Hide price text in button on very small screens to save space */
-  @media (max-width: 380px) {
-    .btn-add-order {
-      font-size: 12px;
-      padding: 11px 10px;
-    }
+    white-space: nowrap;
   }
 
   /* Food title: clamp to fit smaller screen */
