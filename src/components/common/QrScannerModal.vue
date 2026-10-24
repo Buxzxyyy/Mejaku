@@ -1,7 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { QrCode, X, CheckCircle, Sparkles, MapPin } from 'lucide-vue-next'
+import {
+  QrCode,
+  X,
+  CheckCircle,
+  Sparkles,
+  MapPin,
+  Camera,
+  AlertCircle,
+  Copy,
+  ExternalLink,
+} from 'lucide-vue-next'
+import jsQR from 'jsqr'
+import QRCode from 'qrcode'
 import { useOrderStore } from '@/stores/orderStore'
 
 const props = defineProps<{
@@ -15,29 +27,256 @@ const emit = defineEmits<{
 const router = useRouter()
 const orderStore = useOrderStore()
 
+const activeTab = ref<'camera' | 'samples'>('camera')
 const isSuccess = ref(false)
 const selectedTable = ref('A12')
+const cameraError = ref('')
+const isCameraLoading = ref(false)
 
-const tables = [
-  { id: 'A12', name: 'Meja A12', venue: 'Jakarta Culinary Hall (Lantai 2)', area: 'Blok B' },
-  { id: 'B07', name: 'Meja B07', venue: 'Pujasera Sunset (Lantai 1)', area: 'Outdoor Area' },
-  { id: 'C15', name: 'Meja C15', venue: 'Food Oasis Atrium', area: 'Zona Santai' },
-]
+const videoRef = ref<HTMLVideoElement | null>(null)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
 
-function closeModal() {
-  emit('update:modelValue', false)
-  isSuccess.value = false
+let mediaStream: MediaStream | null = null
+let animationFrameId: number | null = null
+
+export interface SampleTable {
+  id: string
+  name: string
+  venue: string
+  area: string
+  floor: number
+  qrUrl?: string
 }
 
-function handleScanTable(tableItem: (typeof tables)[0]) {
+const sampleTables = ref<SampleTable[]>([
+  {
+    id: 'A12',
+    name: 'Meja A12',
+    venue: 'Jakarta Culinary Hall',
+    area: 'Blok B (Dekat Air Mancur)',
+    floor: 2,
+  },
+  {
+    id: 'B07',
+    name: 'Meja B07',
+    venue: 'Pujasera Sunset',
+    area: 'Outdoor Terrace',
+    floor: 1,
+  },
+  {
+    id: 'C15',
+    name: 'Meja C15',
+    venue: 'Food Oasis Atrium',
+    area: 'Zona Santai Tengah',
+    floor: 1,
+  },
+  {
+    id: 'D04',
+    name: 'Meja D04',
+    venue: 'Garden Terrace Food Plaza',
+    area: 'Area Kanopi Tropis',
+    floor: 1,
+  },
+  {
+    id: 'VIP1',
+    name: 'Meja VIP 1',
+    venue: 'Private Dining Hall',
+    area: 'Ruang Eksekutif MejaKu',
+    floor: 2,
+  },
+])
+
+// Generate Real Scannable QR Codes for the 5 sample tables
+async function generateSampleQrs() {
+  const origin = window.location.origin
+  for (const t of sampleTables.value) {
+    try {
+      const targetUrl = `${origin}/?table=${t.id}`
+      t.qrUrl = await QRCode.toDataURL(targetUrl, {
+        width: 220,
+        margin: 1,
+        color: {
+          dark: '#1E293B',
+          light: '#FFFFFF',
+        },
+        errorCorrectionLevel: 'M',
+      })
+    } catch {
+      // Fallback if QRCode generation has an issue
+      t.qrUrl = ''
+    }
+  }
+}
+
+onMounted(() => {
+  generateSampleQrs()
+})
+
+// Camera lifecycle management
+watch(
+  () => props.modelValue,
+  async (isOpen) => {
+    if (isOpen) {
+      isSuccess.value = false
+      cameraError.value = ''
+      if (activeTab.value === 'camera') {
+        await nextTick()
+        startCamera()
+      }
+    } else {
+      stopCamera()
+    }
+  }
+)
+
+watch(activeTab, async (newTab) => {
+  if (newTab === 'camera' && props.modelValue) {
+    await nextTick()
+    startCamera()
+  } else {
+    stopCamera()
+  }
+})
+
+async function startCamera() {
+  cameraError.value = ''
+  isCameraLoading.value = true
+
+  // Check camera API support
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    cameraError.value = 'Browser ini tidak mendukung akses kamera perangkat.'
+    isCameraLoading.value = false
+    return
+  }
+
+  try {
+    // Request environment-facing (rear) camera on mobile, fallback to any camera
+    const constraints: MediaStreamConstraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    }
+
+    mediaStream = await navigator.mediaDevices.getUserMedia(constraints)
+    if (videoRef.value) {
+      videoRef.value.srcObject = mediaStream
+      videoRef.value.setAttribute('playsinline', 'true') // Required for iOS
+      await videoRef.value.play()
+      isCameraLoading.value = false
+      requestScanTick()
+    }
+  } catch (err: any) {
+    isCameraLoading.value = false
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      cameraError.value = 'Izin kamera ditolak. Silakan izinkan kamera di browser atau pilih salah satu meja sample di bawah.'
+    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      cameraError.value = 'Kamera tidak ditemukan pada perangkat ini. Silakan gunakan kartu meja sample di bawah.'
+    } else {
+      cameraError.value = 'Tidak dapat memulai kamera: ' + (err.message || 'Periksa pengaturan kamera.')
+    }
+  }
+}
+
+function stopCamera() {
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId)
+    animationFrameId = null
+  }
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop())
+    mediaStream = null
+  }
+  if (videoRef.value) {
+    videoRef.value.srcObject = null
+  }
+}
+
+function requestScanTick() {
+  if (!props.modelValue || activeTab.value !== 'camera' || isSuccess.value) return
+
+  const video = videoRef.value
+  if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
+    const canvas = canvasRef.value || document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert',
+      })
+
+      if (code && code.data) {
+        handleRawScanData(code.data)
+        return
+      }
+    }
+  }
+
+  animationFrameId = requestAnimationFrame(requestScanTick)
+}
+
+// Parse scanned content (supports full URLs like ?table=A12 or plain text like A12 or MEJA-A12)
+function handleRawScanData(rawText: string) {
+  let detectedId = ''
+
+  try {
+    const parsedUrl = new URL(rawText)
+    const tableParam = parsedUrl.searchParams.get('table') || parsedUrl.searchParams.get('meja')
+    if (tableParam) {
+      detectedId = tableParam.toUpperCase()
+    }
+  } catch {
+    // Plain text scan
+  }
+
+  if (!detectedId) {
+    const upper = rawText.toUpperCase()
+    for (const t of sampleTables.value) {
+      if (upper.includes(t.id)) {
+        detectedId = t.id
+        break
+      }
+    }
+  }
+
+  // If found in sample tables or valid table identifier
+  const foundTable = sampleTables.value.find((t) => t.id === detectedId) || {
+    id: detectedId || 'A12',
+    name: `Meja ${detectedId || 'A12'}`,
+    venue: 'Jakarta Culinary Hall',
+    area: 'Blok Terverifikasi',
+    floor: (detectedId || 'A12').startsWith('A') ? 2 : 1,
+  }
+
+  applyVerifiedTable(foundTable)
+}
+
+function applyVerifiedTable(tableItem: SampleTable) {
   selectedTable.value = tableItem.id
   isSuccess.value = true
+  playBeepSound()
 
-  // Update table context in store — using setTable() which persists to localStorage
+  if (navigator.vibrate) {
+    try {
+      navigator.vibrate([60, 40, 60])
+    } catch {
+      // Ignore vibration error
+    }
+  }
+
+  stopCamera()
+
+  // Save to persistent Pinia store
   orderStore.setTable({
     tableNumber: tableItem.id,
-    floor: tableItem.id.startsWith('A') ? 2 : 1,
-    venue: tableItem.venue.split(' (')[0],
+    floor: tableItem.floor,
+    venue: tableItem.venue,
     area: tableItem.area,
     isVerified: true,
   })
@@ -47,85 +286,234 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
     router.push('/')
   }, 1200)
 }
+
+// Gentle pleasant scanner beep feedback
+function playBeepSound() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioContextClass) return
+    const audioCtx = new AudioContextClass()
+    const osc = audioCtx.createOscillator()
+    const gain = audioCtx.createGain()
+
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime) // A5 note
+    osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.1) // E6 note
+
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12)
+
+    osc.connect(gain)
+    gain.connect(audioCtx.destination)
+    osc.start()
+    osc.stop(audioCtx.currentTime + 0.12)
+  } catch {
+    // Ignore audio autoplay restrictions
+  }
+}
+
+function closeModal() {
+  stopCamera()
+  emit('update:modelValue', false)
+  isSuccess.value = false
+}
+
+onUnmounted(() => {
+  stopCamera()
+})
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="modelValue" class="scanner-backdrop" @click.self="closeModal">
-      <div class="scanner-modal" role="dialog" aria-modal="true" aria-labelledby="scanner-modal-title">
+      <div
+        class="scanner-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scanner-modal-title"
+      >
         <!-- Header -->
         <div class="scanner-header">
           <div class="header-left">
             <div class="scanner-badge">
-              <QrCode :size="16" />
-              <span>Kamera Pemindai QR Meja</span>
+              <Camera :size="14" />
+              <span>Pemindai Kamera Barcode & QR</span>
             </div>
             <h3 id="scanner-modal-title" class="font-display scanner-title">
-              Pindai QR di Mejamu
+              Pindai Meja MejaKu
             </h3>
           </div>
-          <button type="button" class="close-btn" aria-label="Tutup pemindai" @click="closeModal">
+          <button
+            type="button"
+            class="close-btn"
+            aria-label="Tutup pemindai"
+            @click="closeModal"
+          >
             <X :size="20" />
           </button>
         </div>
 
-        <!-- Camera Viewport Simulation -->
-        <div class="camera-viewport">
-          <!-- Live scan line animation -->
-          <div v-if="!isSuccess" class="laser-line" />
+        <!-- Tab Selector: Live Camera vs 5 Sample Barcodes -->
+        <div class="scanner-tabs-bar">
+          <button
+            type="button"
+            class="scanner-tab-btn"
+            :class="{ active: activeTab === 'camera' }"
+            @click="activeTab = 'camera'"
+          >
+            <Camera :size="15" />
+            <span>Kamera Live</span>
+          </button>
+          <button
+            type="button"
+            class="scanner-tab-btn"
+            :class="{ active: activeTab === 'samples' }"
+            @click="activeTab = 'samples'"
+          >
+            <QrCode :size="15" />
+            <span>5 QR Stiker Meja (Sample)</span>
+          </button>
+        </div>
 
-          <!-- Corner Reticle Markers -->
-          <div class="reticle-corner top-left" />
-          <div class="reticle-corner top-right" />
-          <div class="reticle-corner bottom-left" />
-          <div class="reticle-corner bottom-right" />
+        <!-- TAB 1: Real Camera Scanner Viewport -->
+        <div v-show="activeTab === 'camera'" class="camera-tab-content">
+          <div class="camera-viewport">
+            <!-- Hidden canvas for pixel analysis -->
+            <canvas ref="canvasRef" class="hidden-scanner-canvas" />
 
-          <!-- Centered QR Target Graphic -->
-          <div v-if="!isSuccess" class="qr-target-center">
-            <QrCode :size="120" stroke-width="1.2" class="target-icon" />
-            <span class="target-hint">Arahkan kamera ke stiker MejaKu</span>
+            <!-- Live Video Feed from device camera -->
+            <video
+              ref="videoRef"
+              autoplay
+              playsinline
+              muted
+              class="camera-video-feed"
+            />
+
+            <!-- Scan Laser Animation -->
+            <div v-if="!isSuccess && !cameraError" class="laser-line" />
+
+            <!-- Reticle Corners -->
+            <div class="reticle-corner top-left" />
+            <div class="reticle-corner top-right" />
+            <div class="reticle-corner bottom-left" />
+            <div class="reticle-corner bottom-right" />
+
+            <!-- Loading Spinner -->
+            <div v-if="isCameraLoading" class="camera-center-msg">
+              <div class="loading-spin" />
+              <span>Menyiapkan kamera ponsel...</span>
+            </div>
+
+            <!-- Error fallback inside viewport -->
+            <div v-else-if="cameraError" class="camera-center-msg error-msg">
+              <AlertCircle :size="32" class="error-icon" />
+              <p class="error-text">{{ cameraError }}</p>
+              <button
+                type="button"
+                class="btn-retry-camera"
+                @click="startCamera"
+              >
+                Coba Kamera Lagi
+              </button>
+            </div>
+
+            <!-- Scanning Guide Overlay -->
+            <div v-else-if="!isSuccess" class="qr-target-guide">
+              <span class="target-hint">Arahkan kamera ke kode QR di mejamu</span>
+            </div>
+
+            <!-- Success Overlay with Pop Animation -->
+            <Transition name="scale-fade">
+              <div v-if="isSuccess" class="scan-success-overlay">
+                <CheckCircle :size="52" class="success-icon" />
+                <h4 class="success-title">QR Meja Terverifikasi!</h4>
+                <p class="success-subtitle">
+                  Tersambung ke <strong>Meja {{ selectedTable }}</strong>. Membuka menu...
+                </p>
+              </div>
+            </Transition>
           </div>
 
-          <!-- Success scan feedback overlay -->
-          <div v-else class="scan-success-overlay animate-fade-in">
-            <CheckCircle :size="54" class="success-icon" />
-            <h4 class="success-title">QR Meja Terverifikasi!</h4>
-            <p class="success-subtitle">Membuka menu kuliner meja {{ selectedTable }}...</p>
+          <!-- Quick click-to-select fallback under camera -->
+          <div class="quick-tables-row">
+            <span class="quick-label">Atau simulasi tap meja:</span>
+            <div class="quick-chips">
+              <button
+                v-for="t in sampleTables"
+                :key="t.id"
+                type="button"
+                class="quick-table-chip"
+                :class="{ active: selectedTable === t.id && isSuccess }"
+                @click="applyVerifiedTable(t)"
+              >
+                {{ t.name }}
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Simulated Table QR Sticker options -->
-        <div class="sample-tables-section">
-          <div class="sample-label">
-            <Sparkles :size="14" />
-            <span>Pilih meja untuk melanjutkan:</span>
+        <!-- TAB 2: 5 Sample QR Stickers for user to test scanning -->
+        <div v-show="activeTab === 'samples'" class="samples-tab-content">
+          <div class="samples-intro">
+            <Sparkles :size="16" class="sparkle-icon" />
+            <p>
+              Gunakan ponsel untuk memindai salah satu dari <strong>5 QR stiker barcode meja</strong> di bawah ini, atau klik tombol untuk memilih langsung:
+            </p>
           </div>
 
-          <div class="tables-grid">
-            <button
-              v-for="t in tables"
+          <div class="sample-qrs-grid">
+            <div
+              v-for="t in sampleTables"
               :key="t.id"
-              type="button"
-              class="table-card-btn"
+              class="sample-qr-card"
               :class="{ selected: selectedTable === t.id && isSuccess }"
-              @click="handleScanTable(t)"
             >
-              <div class="table-card-top">
-                <span class="table-number">{{ t.name }}</span>
-                <span class="badge-qr">Pindai</span>
+              <!-- Sticker Header -->
+              <div class="sticker-top">
+                <div class="sticker-brand">
+                  <span class="brand-m">M</span>
+                  <span class="brand-text">MejaKu</span>
+                </div>
+                <span class="sticker-floor">Lt. {{ t.floor }}</span>
               </div>
-              <div class="table-card-venue">
-                <MapPin :size="12" />
-                <span>{{ t.venue }}</span>
+
+              <!-- Generated Real QR Code Image -->
+              <div class="qr-code-frame">
+                <img
+                  v-if="t.qrUrl"
+                  :src="t.qrUrl"
+                  :alt="`QR Barcode ${t.name}`"
+                  class="generated-qr-img"
+                />
+                <div v-else class="qr-placeholder">
+                  <QrCode :size="100" />
+                </div>
               </div>
-            </button>
+
+              <!-- Table Info -->
+              <div class="sticker-info">
+                <strong class="sticker-table-title">{{ t.name }}</strong>
+                <span class="sticker-venue">{{ t.venue }}</span>
+                <span class="sticker-area">{{ t.area }}</span>
+              </div>
+
+              <!-- Action Button -->
+              <button
+                type="button"
+                class="btn-apply-sticker"
+                @click="applyVerifiedTable(t)"
+              >
+                Terapkan {{ t.name }}
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Footer notice -->
         <div class="scanner-footer">
           <p>
-            💡 Di pujasera asli, pelanggan cukup membuka aplikasi kamera bawaan ponsel lalu arahkan ke QR stiker meja tanpa download aplikasi apa pun.
+            💡 <strong>Info:</strong> Kamera pemindai membaca barcode & QR code secara otomatis secara real-time. Jika membuka web di HP lain, Anda dapat langsung mengarahkan kamera ke salah satu dari 5 QR di atas!
           </p>
         </div>
       </div>
@@ -142,17 +530,20 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1100;
+  z-index: 2200;
   padding: 16px;
 }
 
 .scanner-modal {
-  background-color: var(--surface);
-  border-radius: var(--radius-xl);
-  max-width: 480px;
+  background-color: #FFFFFF;
+  border-radius: 24px;
+  max-width: 520px;
   width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
   border: 1px solid var(--border);
   animation: modalScale 0.25s var(--ease-spring);
 }
@@ -160,7 +551,7 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
 @keyframes modalScale {
   from {
     opacity: 0;
-    transform: scale(0.9) translateY(16px);
+    transform: scale(0.92) translateY(16px);
   }
   to {
     opacity: 1;
@@ -172,7 +563,8 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 20px 24px 16px 24px;
+  padding: 20px 24px 14px 24px;
+  border-bottom: 1px solid var(--border);
 }
 
 .scanner-badge {
@@ -189,16 +581,25 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
 }
 
 .scanner-title {
-  font-size: 26px;
+  font-size: 22px;
+  font-weight: 800;
   color: var(--text-primary);
+  margin: 0;
   line-height: 1.2;
 }
 
 .close-btn {
   color: var(--text-secondary);
-  padding: 6px;
+  background: transparent;
+  border: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius-full);
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
 .close-btn:hover {
@@ -206,18 +607,68 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
   color: var(--text-primary);
 }
 
-/* Simulated Camera Viewport */
+/* Tabs switcher */
+.scanner-tabs-bar {
+  display: flex;
+  background-color: #F8FAFC;
+  padding: 6px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+}
+
+.scanner-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scanner-tab-btn.active {
+  background-color: #FFFFFF;
+  color: var(--primary);
+  border-color: var(--border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Camera Viewport */
+.camera-tab-content {
+  padding: 16px 20px 8px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .camera-viewport {
   position: relative;
-  height: 240px;
-  margin: 0 24px;
+  height: 260px;
   background-color: #0F172A;
-  border-radius: var(--radius-lg);
+  border-radius: 18px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid #334155;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.6);
+}
+
+.hidden-scanner-canvas {
+  display: none;
+}
+
+.camera-video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .laser-line {
@@ -226,105 +677,144 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
   right: 10%;
   height: 3px;
   background: linear-gradient(90deg, transparent, #F97316, #EA580C, #F97316, transparent);
-  box-shadow: 0 0 14px #F97316;
+  box-shadow: 0 0 16px #F97316;
   z-index: 10;
   animation: scanLaser 2s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes scanLaser {
-  0% {
-    top: 15%;
-  }
-  50% {
-    top: 85%;
-  }
-  100% {
-    top: 15%;
-  }
+  0% { top: 12%; }
+  50% { top: 88%; }
+  100% { top: 12%; }
 }
 
-/* Reticle corners */
 .reticle-corner {
   position: absolute;
   width: 28px;
   height: 28px;
-  border: 3px solid var(--accent);
+  border: 3px solid #F97316;
   z-index: 5;
+  pointer-events: none;
 }
 
 .reticle-corner.top-left {
-  top: 20px;
-  left: 20px;
+  top: 18px;
+  left: 18px;
   border-right: none;
   border-bottom: none;
   border-top-left-radius: 8px;
 }
 
 .reticle-corner.top-right {
-  top: 20px;
-  right: 20px;
+  top: 18px;
+  right: 18px;
   border-left: none;
   border-bottom: none;
   border-top-right-radius: 8px;
 }
 
 .reticle-corner.bottom-left {
-  bottom: 20px;
-  left: 20px;
+  bottom: 18px;
+  left: 18px;
   border-right: none;
   border-top: none;
   border-bottom-left-radius: 8px;
 }
 
 .reticle-corner.bottom-right {
-  bottom: 20px;
-  right: 20px;
+  bottom: 18px;
+  right: 18px;
   border-left: none;
   border-top: none;
   border-bottom-right-radius: 8px;
 }
 
-.qr-target-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: #94A3B8;
-  opacity: 0.8;
-}
-
-.target-icon {
-  color: #CBD5E1;
+.qr-target-guide {
+  position: absolute;
+  bottom: 16px;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  z-index: 8;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 
 .target-hint {
+  font-size: 11.5px;
+  color: #F8FAFC;
+  font-weight: 600;
+}
+
+.camera-center-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #CBD5E1;
+  text-align: center;
+  padding: 20px;
+  z-index: 6;
+}
+
+.loading-spin {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #F97316;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-msg {
+  color: #FCA5A5;
+}
+
+.error-icon {
+  color: #EF4444;
+}
+
+.error-text {
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 320px;
+}
+
+.btn-retry-camera {
+  background-color: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  padding: 8px 16px;
   font-size: 12px;
-  color: #94A3B8;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  cursor: pointer;
 }
 
 .scan-success-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(21, 128, 61, 0.92);
+  background-color: rgba(22, 101, 52, 0.94);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
-  padding: 20px;
+  padding: 24px;
   text-align: center;
-  z-index: 20;
+  z-index: 25;
 }
 
 .success-icon {
-  margin-bottom: 12px;
-  animation: scalePop 0.3s var(--ease-spring);
-}
-
-@keyframes scalePop {
-  from { transform: scale(0.6); }
-  to { transform: scale(1); }
+  margin-bottom: 10px;
+  color: #86EFAC;
 }
 
 .success-title {
@@ -335,86 +825,227 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
 
 .success-subtitle {
   font-size: 13px;
-  opacity: 0.9;
+  opacity: 0.95;
+  margin: 0;
 }
 
-/* Sample tables section */
-.sample-tables-section {
-  padding: 18px 24px 0 24px;
-}
-
-.sample-label {
+/* Quick chips */
+.quick-tables-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+}
+
+.quick-label {
+  font-size: 11.5px;
   font-weight: 700;
-  color: var(--primary);
-  margin-bottom: 10px;
-}
-
-.tables-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.table-card-btn {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background-color: var(--surface-warm);
-  border: 1.5px solid var(--border);
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  text-align: left;
-  transition: all 0.18s ease;
-}
-
-.table-card-btn:hover {
-  background-color: var(--primary-soft);
-  border-color: var(--primary);
-  transform: translateX(4px);
-}
-
-.table-card-btn.selected {
-  background-color: var(--success-soft);
-  border-color: var(--success);
-}
-
-.table-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.table-number {
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.badge-qr {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary);
-  background: #FFFFFF;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-}
-
-.table-card-venue {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
   color: var(--text-secondary);
 }
 
-.scanner-footer {
-  padding: 16px 24px 20px 24px;
+.quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quick-table-chip {
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background-color: var(--surface-warm);
   font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-table-chip:hover {
+  background-color: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.quick-table-chip.active {
+  background-color: #22C55E;
+  color: #FFFFFF;
+  border-color: #22C55E;
+}
+
+/* TAB 2: 5 Sample QR Stickers */
+.samples-tab-content {
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.samples-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background-color: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: #92400E;
+  line-height: 1.45;
+}
+
+.sparkle-icon {
+  color: #D97706;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sample-qrs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.sample-qr-card {
+  background: #FFFFFF;
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.sample-qr-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 8px 20px rgba(194, 65, 12, 0.12);
+  transform: translateY(-2px);
+}
+
+.sample-qr-card.selected {
+  border-color: #22C55E;
+  background-color: #F0FDF4;
+}
+
+.sticker-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.sticker-brand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.brand-m {
+  background-color: var(--primary);
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 900;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.sticker-floor {
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-muted);
-  line-height: 1.4;
+  background: #F1F5F9;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+}
+
+.qr-code-frame {
+  width: 140px;
+  height: 140px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.generated-qr-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sticker-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.sticker-table-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.sticker-venue {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.sticker-area {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.btn-apply-sticker {
+  width: 100%;
+  background-color: #1E293B;
+  color: #FFFFFF;
+  border: none;
+  padding: 8px 12px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-apply-sticker:hover {
+  background-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+/* Footer */
+.scanner-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  background-color: #F8FAFC;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.scanner-footer p {
+  margin: 0;
 }
 </style>

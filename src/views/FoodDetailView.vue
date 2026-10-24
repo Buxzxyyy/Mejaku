@@ -657,30 +657,23 @@ function submitRating() {
   letter-spacing: 0.5px;
 }
 
-/* Thumbnails Row: Exactly 5 slots in view, horizontally scrollable when expanded */
+/* Thumbnails Row: Exactly 5 slots in view, horizontally scrollable with invisible scrollbar */
 .thumbnails-row {
   display: flex;
   gap: 10px;
   overflow-x: auto;
   scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   padding-bottom: 4px;
   -webkit-overflow-scrolling: touch;
   user-select: none;
 }
 
 .thumbnails-row::-webkit-scrollbar {
-  height: 4px;
-}
-
-.thumbnails-row::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.thumbnails-row::-webkit-scrollbar-thumb {
-  background-color: var(--border);
-  border-radius: 99px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .thumb-btn {
