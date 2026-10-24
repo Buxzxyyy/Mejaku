@@ -474,7 +474,7 @@ export const useOrderStore = defineStore('order', () => {
         paymentDeadline: paymentDeadline.value,
         orderHistory: orderHistory.value,
       }
-      localStorage.setItem('mejaku_state_v2', JSON.stringify(stateToSave))
+      localStorage.setItem('mejaku_state_v3', JSON.stringify(stateToSave))
     } catch {
       // Ignore localStorage errors
     }
@@ -482,10 +482,11 @@ export const useOrderStore = defineStore('order', () => {
 
   function loadFromStorage() {
     try {
-      // Clear legacy storage v1 that had pre-filled demo data
+      // Clear legacy storage versions
       localStorage.removeItem('mejaku_state_v1')
+      localStorage.removeItem('mejaku_state_v2')
 
-      const raw = localStorage.getItem('mejaku_state_v2')
+      const raw = localStorage.getItem('mejaku_state_v3')
       if (raw) {
         const saved = JSON.parse(raw)
         if (Array.isArray(saved.cartItems)) {
@@ -496,12 +497,20 @@ export const useOrderStore = defineStore('order', () => {
         if (saved.promoCode) promoCode.value = saved.promoCode
         if (saved.order) currentOrder.value = saved.order
         if (saved.paymentDeadline) paymentDeadline.value = saved.paymentDeadline
-        // Load persisted order history (merge with default demo entry if storage is empty)
+
+        // Load order history: merge saved entries with default demo so demo always appears
         if (Array.isArray(saved.orderHistory) && saved.orderHistory.length > 0) {
-          orderHistory.value = saved.orderHistory
+          // Ensure demo entry is always present (add if not found)
+          const hasDemoEntry = saved.orderHistory.some((o: Order) => o.id === 'MJK-51204-BA')
+          if (hasDemoEntry) {
+            orderHistory.value = saved.orderHistory
+          } else {
+            orderHistory.value = [...saved.orderHistory, ...orderHistory.value]
+          }
         }
+        // If saved.orderHistory is missing/empty, keep the default demo entries from ref init
       } else {
-        // Starts completely EMPTY!
+        // No saved state at all — starts with demo history + empty cart
         cartItems.value = []
       }
     } catch {

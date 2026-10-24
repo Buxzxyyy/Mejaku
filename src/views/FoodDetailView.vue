@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import {
   Star,
@@ -30,6 +30,8 @@ const currentItem = computed(() => {
 })
 
 const activeGalleryIndex = ref(0)
+const isGalleryExpanded = ref(false)
+const thumbnailsContainer = ref<HTMLElement | null>(null)
 
 const galleryImages = computed(() => {
   return currentItem.value.gallery && currentItem.value.gallery.length > 0
@@ -37,24 +39,109 @@ const galleryImages = computed(() => {
     : [currentItem.value.image]
 })
 
-const MAX_THUMBNAILS = 5
+const MAX_VISIBLE = 5 // exactly 5 slots visible in initial row
 
-// Compute visible thumbnails (up to 5)
-const visibleThumbnails = computed(() => {
-  return galleryImages.value.slice(0, MAX_THUMBNAILS)
-})
-
-// Number of extra images hidden behind the 5th thumbnail slot
+// Extra images hidden behind the +N badge
 const extraImagesCount = computed(() => {
-  return Math.max(0, galleryImages.value.length - (MAX_THUMBNAILS - 1))
+  return Math.max(0, galleryImages.value.length - MAX_VISIBLE)
 })
 
-// Sync orderStore active item and reset gallery index whenever currentItem changes
+// If expanded or total <= 5, show all images. If not expanded, show only 5 slots.
+const visibleThumbnails = computed(() => {
+  if (isGalleryExpanded.value || galleryImages.value.length <= MAX_VISIBLE) {
+    return galleryImages.value
+  }
+  return galleryImages.value.slice(0, MAX_VISIBLE)
+})
+
+// The +N overlay only shows on the 5th slot (index 4) when NOT expanded and there are extra images
+function isOverflowSlot(idx: number): boolean {
+  return !isGalleryExpanded.value && idx === MAX_VISIBLE - 1 && extraImagesCount.value > 0
+}
+
+// Mouse drag-to-scroll support for desktop
+let isDragging = false
+let startX = 0
+let initialScrollLeft = 0
+let dragDistance = 0
+
+function handleMouseDown(e: MouseEvent) {
+  const container = thumbnailsContainer.value
+  if (!container) return
+  isDragging = true
+  dragDistance = 0
+  startX = e.pageX - container.offsetLeft
+  initialScrollLeft = container.scrollLeft
+}
+
+function handleMouseMove(e: MouseEvent) {
+  if (!isDragging) return
+  const container = thumbnailsContainer.value
+  if (!container) return
+  const x = e.pageX - container.offsetLeft
+  const walk = x - startX
+  dragDistance = Math.abs(walk)
+  container.scrollLeft = initialScrollLeft - walk
+}
+
+function handleMouseUp() {
+  isDragging = false
+}
+
+function handleMouseLeave() {
+  isDragging = false
+}
+
+function handleThumbnailClick(idx: number, e?: MouseEvent) {
+  if (dragDistance > 6) {
+    dragDistance = 0
+    return
+  }
+
+  if (isOverflowSlot(idx)) {
+    // Expand to show all slots and scroll slightly to reveal the added slot(s)
+    isGalleryExpanded.value = true
+    activeGalleryIndex.value = idx
+    nextTick(() => {
+      const container = thumbnailsContainer.value
+      if (container) {
+        container.scrollBy({ left: 140, behavior: 'smooth' })
+      }
+    })
+    return
+  }
+
+  activeGalleryIndex.value = idx
+
+  // Auto-scroll thumbnail into view if partially hidden
+  nextTick(() => {
+    const container = thumbnailsContainer.value
+    if (container && e?.currentTarget) {
+      const btn = e.currentTarget as HTMLElement
+      const btnLeft = btn.offsetLeft - container.offsetLeft
+      const btnRight = btnLeft + btn.offsetWidth
+      const containerLeft = container.scrollLeft
+      const containerRight = containerLeft + container.clientWidth
+
+      if (btnRight > containerRight) {
+        container.scrollTo({ left: btnRight - container.clientWidth + 16, behavior: 'smooth' })
+      } else if (btnLeft < containerLeft) {
+        container.scrollTo({ left: Math.max(0, btnLeft - 16), behavior: 'smooth' })
+      }
+    }
+  })
+}
+
+// Sync orderStore active item and reset gallery index when item changes
 watch(
   () => currentItem.value.id,
   () => {
     orderStore.setActiveItem(currentItem.value)
     activeGalleryIndex.value = 0
+    isGalleryExpanded.value = false
+    if (thumbnailsContainer.value) {
+      thumbnailsContainer.value.scrollLeft = 0
+    }
   },
   { immediate: true }
 )
@@ -83,18 +170,6 @@ function isSpiceActive(s: SpiceOption) {
 
 function isAddonChecked(a: AddonOption) {
   return orderStore.currentAddons.some((item) => item.id === a.id)
-}
-
-function handleThumbnailClick(idx: number) {
-  if (idx === MAX_THUMBNAILS - 1 && extraImagesCount.value > 0) {
-    if (activeGalleryIndex.value >= MAX_THUMBNAILS - 1 && activeGalleryIndex.value < galleryImages.value.length - 1) {
-      activeGalleryIndex.value++
-    } else {
-      activeGalleryIndex.value = MAX_THUMBNAILS - 1
-    }
-  } else {
-    activeGalleryIndex.value = idx
-  }
 }
 
 function handleAddToCart() {
@@ -190,33 +265,41 @@ function submitRating() {
             </div>
           </div>
 
-          <!-- Thumbnails Row (Max 5 slots. If > 5 images, 5th slot has blurred preview + count) -->
-          <div class="thumbnails-row" role="tablist" aria-label="Galeri Foto Makanan">
+          <!-- Thumbnails: 5 slots by default, clicking +N expands and scrolls right -->
+          <div
+            ref="thumbnailsContainer"
+            class="thumbnails-row"
+            :class="{ 'is-expanded': isGalleryExpanded }"
+            role="tablist"
+            aria-label="Galeri Foto Makanan"
+            @mousedown="handleMouseDown"
+            @mousemove="handleMouseMove"
+            @mouseup="handleMouseUp"
+            @mouseleave="handleMouseLeave"
+          >
             <button
               v-for="(img, idx) in visibleThumbnails"
               :key="idx"
               type="button"
               class="thumb-btn"
               :class="{
-                active: activeGalleryIndex === idx || (idx === MAX_THUMBNAILS - 1 && activeGalleryIndex >= idx),
-                'thumb-slot-extra': idx === MAX_THUMBNAILS - 1 && extraImagesCount > 0,
+                active: activeGalleryIndex === idx,
+                'thumb-slot-extra': isOverflowSlot(idx),
               }"
               :aria-selected="activeGalleryIndex === idx"
               :aria-label="`Pilih foto ${idx + 1}`"
-              @click="handleThumbnailClick(idx)"
+              @click="handleThumbnailClick(idx, $event)"
             >
               <img
                 :src="img"
                 :alt="`Thumbnail ${idx + 1}`"
                 class="thumb-img"
-                :class="{ 'thumb-img-blurred': idx === MAX_THUMBNAILS - 1 && extraImagesCount > 0 }"
+                :class="{ 'thumb-img-blurred': isOverflowSlot(idx) }"
+                draggable="false"
               />
 
-              <!-- Overlay +N on the 5th (bottom-right) thumbnail -->
-              <div
-                v-if="idx === MAX_THUMBNAILS - 1 && extraImagesCount > 0"
-                class="thumb-extra-overlay"
-              >
+              <!-- +N overlay on 5th slot when there are more images and not expanded -->
+              <div v-if="isOverflowSlot(idx)" class="thumb-extra-overlay">
                 +{{ extraImagesCount }}
               </div>
             </button>
@@ -590,15 +673,36 @@ function submitRating() {
   letter-spacing: 0.5px;
 }
 
-/* Thumbnails Row: Exactly 5 slots */
+/* Thumbnails Row: Exactly 5 slots in view, horizontally scrollable when expanded */
 .thumbnails-row {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
   gap: 10px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  user-select: none;
+}
+
+.thumbnails-row::-webkit-scrollbar {
+  height: 4px;
+}
+
+.thumbnails-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thumbnails-row::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 99px;
 }
 
 .thumb-btn {
   position: relative;
+  flex: 0 0 calc((100% - 40px) / 5);
+  width: calc((100% - 40px) / 5);
   aspect-ratio: 1;
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -606,7 +710,8 @@ function submitRating() {
   padding: 0;
   cursor: pointer;
   background: var(--surface);
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
 }
 
 .thumb-btn:hover {

@@ -491,17 +491,38 @@ function goToOrderStatus(orderId: string) {
   border-color: var(--primary);
 }
 
-@media (max-width: 640px) {
+/* ===================== RESPONSIVE ===================== */
+
+/* Tablet (≤ 900px): hide brand name text, compress spacing */
+@media (max-width: 900px) {
   .navbar-container {
-    height: 64px;
+    gap: 10px;
   }
 
   .brand-name {
     display: none;
   }
 
-  .table-pill-text {
+  .nav-right-actions {
+    gap: 8px;
+  }
+
+  .table-pill-verified {
+    padding: 7px 11px;
     font-size: 12px;
+    gap: 6px;
+  }
+
+  .btn-nav-history .nav-history-text {
+    display: none;
+  }
+
+  .btn-nav-history {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius-full);
   }
 
   .btn-ganti-meja span {
@@ -509,8 +530,97 @@ function goToOrderStatus(orderId: string) {
   }
 
   .btn-ganti-meja {
-    padding: 10px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
     border-radius: var(--radius-full);
+  }
+
+  /* History modal full width on tablet */
+  .history-modal-card {
+    max-width: 100%;
+    width: calc(100vw - 32px);
+  }
+}
+
+/* Small tablet / large mobile (≤ 640px) */
+@media (max-width: 640px) {
+  .navbar-container {
+    height: 60px;
+    gap: 8px;
+  }
+
+  .logo-box {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .logo-m {
+    font-size: 20px;
+  }
+
+  .nav-right-actions {
+    gap: 6px;
+  }
+
+  /* Table pill: show only pulse dot + meja number */
+  .table-pill-verified {
+    padding: 6px 10px;
+    font-size: 11px;
+    gap: 5px;
+  }
+
+  /* Hide the verified icon on small screens, keep dot */
+  .verified-icon {
+    display: none;
+  }
+
+  .btn-cart-nav {
+    width: 38px;
+    height: 38px;
+  }
+
+  .btn-nav-history {
+    width: 38px;
+    height: 38px;
+  }
+
+  .btn-ganti-meja {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* Mobile (≤ 400px): ultra compact */
+@media (max-width: 400px) {
+  .navbar-container {
+    height: 56px;
+    gap: 6px;
+    padding: 0 12px;
+  }
+
+  .table-pill-verified {
+    padding: 5px 8px;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .live-pulse-dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .btn-cart-nav,
+  .btn-nav-history,
+  .btn-ganti-meja {
+    width: 36px;
+    height: 36px;
+  }
+
+  .nav-right-actions {
+    gap: 5px;
   }
 }
 </style>

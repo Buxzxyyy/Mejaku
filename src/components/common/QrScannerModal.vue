@@ -33,18 +33,18 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
   selectedTable.value = tableItem.id
   isSuccess.value = true
 
-  // Update table context in store
-  orderStore.table = {
+  // Update table context in store — using setTable() which persists to localStorage
+  orderStore.setTable({
     tableNumber: tableItem.id,
-    floor: tableItem.id === 'A12' ? 2 : 1,
+    floor: tableItem.id.startsWith('A') ? 2 : 1,
     venue: tableItem.venue.split(' (')[0],
     area: tableItem.area,
     isVerified: true,
-  }
+  })
 
   setTimeout(() => {
     closeModal()
-    router.push('/menu/nasi-campur-bali-agung')
+    router.push('/')
   }, 1200)
 }
 </script>
@@ -98,7 +98,7 @@ function handleScanTable(tableItem: (typeof tables)[0]) {
         <div class="sample-tables-section">
           <div class="sample-label">
             <Sparkles :size="14" />
-            <span>Pilih stiker simulasi meja untuk demo instan:</span>
+            <span>Pilih meja untuk melanjutkan:</span>
           </div>
 
           <div class="tables-grid">
