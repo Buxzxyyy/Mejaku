@@ -897,6 +897,77 @@ function submitRating() {
   }
 }
 
+/* ─── Mobile (≤ 640px) Fixes for Realme 8 ─── */
+@media (max-width: 640px) {
+  .detail-main-content {
+    padding-bottom: 48px;
+  }
+
+  .top-nav-row {
+    margin-top: 12px;
+    margin-bottom: 16px;
+  }
+
+  /* Action bar: Tambahkan ke Pesanan + Stepper */
+  .order-action-bar {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+    padding-top: 8px;
+  }
+
+  /* Make QuantityStepper feel like its own row on mobile */
+  .order-action-bar > :first-child {
+    align-self: center;
+  }
+
+  /* "Tambahkan ke Pesanan" button: smaller text & padding on mobile */
+  .btn-add-order {
+    padding: 13px 16px;
+    font-size: 14px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Food title: clamp to fit smaller screen */
+  .food-title {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .food-price-value {
+    font-size: 22px;
+  }
+
+  /* Merchant + rating row: smaller on mobile */
+  .merchant-rating-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  /* Rating badge: compact */
+  .rating-badge-interactive {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+
+  .rate-prompt-pill {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  /* Spice chips: slightly smaller on mobile */
+  .spice-chip {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* Recommendations grid: single column on phone */
+  .recommendations-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .radio-card {
   position: relative;
   border: 1.5px solid var(--border);

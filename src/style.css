@@ -265,6 +265,8 @@ textarea:focus-visible {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .badge-pill-success {

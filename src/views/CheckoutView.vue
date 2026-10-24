@@ -1209,4 +1209,127 @@ function handleCreateOrder() {
   opacity: 0;
   transform: scale(0.88) translateY(16px);
 }
+
+/* ─── Mobile (≤ 640px) Fixes for Realme 8 ─── */
+@media (max-width: 640px) {
+  .checkout-main {
+    padding-top: 12px;
+    padding-bottom: 40px;
+  }
+
+  .checkout-header-row {
+    margin-bottom: 20px;
+    gap: 12px;
+  }
+
+  .checkout-h1 {
+    font-size: 26px;
+  }
+
+  .checkout-desc {
+    font-size: 13px;
+  }
+
+  .trust-badge {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .step-card {
+    padding: 16px;
+  }
+
+  .step-num {
+    font-size: 24px;
+  }
+
+  .step-title {
+    font-size: 16px;
+  }
+
+  /* Cart item box: stack vertically on very small screens */
+  .order-item-box {
+    gap: 12px;
+    padding: 14px;
+    flex-wrap: wrap;
+  }
+
+  /* Thumbnail: smaller on mobile */
+  .item-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+  }
+
+  /* Item details: take remaining space */
+  .item-details {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .item-name {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  /* Price & stepper column: full width row at bottom */
+  .item-price-col {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  /* Price: smaller on mobile */
+  .item-price {
+    font-size: 15px;
+  }
+
+  /* Stepper row with trash: compact */
+  .item-stepper-trash-row {
+    gap: 6px;
+  }
+
+  .btn-trash-inline {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* Summary card header: fix "N menu" badge not wrapping */
+  .summary-card-header {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  /* Badge pill: prevent text wrapping */
+  .badge-pill {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .summary-title {
+    font-size: 18px;
+  }
+
+  .summary-card {
+    padding: 16px;
+  }
+
+  /* Table verified banner: stack on mobile */
+  .table-verified-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .banner-table-title {
+    font-size: 14px;
+  }
+}
 </style>

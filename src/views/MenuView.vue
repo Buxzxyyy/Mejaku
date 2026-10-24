@@ -799,6 +799,7 @@ function clearSearch() {
   margin-bottom: 24px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1089,8 +1090,65 @@ function clearSearch() {
 }
 
 @media (max-width: 640px) {
+  .menu-main {
+    padding-top: 16px;
+    padding-bottom: 140px;
+  }
+
   .menu-h1 {
-    font-size: 28px;
+    font-size: 24px;
+  }
+
+  .menu-header-desc {
+    font-size: 13px;
+  }
+
+  /* Fix: category nav must stay sticky and not be hidden behind other content */
+  .categories-nav-sticky {
+    top: 60px;
+    padding: 8px 0;
+    margin-bottom: 16px;
+    /* Extend left/right to bleed to screen edges on mobile for scroll feel */
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .categories-scroll-row {
+    gap: 8px;
+    padding-bottom: 2px;
+    /* Ensure full scroll on mobile without clipping */
+    padding-right: 16px;
+  }
+
+  .cat-tab-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    gap: 6px;
+    /* Prevent shrinking on small screens */
+    flex-shrink: 0;
+  }
+
+  /* Quick filter chips: ensure wrapping and sizing are compact */
+  .quick-filter-row {
+    gap: 6px;
+  }
+
+  .chip-btn {
+    font-size: 11px;
+    padding: 4px 9px;
+  }
+
+  /* catalog heading - prevent item count from wrapping */
+  .catalog-count-text {
+    font-size: 12px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  .catalog-h2 {
+    font-size: 20px;
   }
 
   .table-bar-content {
@@ -1098,18 +1156,42 @@ function clearSearch() {
     align-items: flex-start;
   }
 
+  /* Floating cart bar: compact on mobile */
   .cart-bar-inner {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 14px;
+    padding: 12px 14px;
+    gap: 10px;
   }
 
-  .btn-checkout-floating {
-    justify-content: center;
+  .cart-item-name {
+    font-size: 13px;
+  }
+
+  .cart-subtotal-price {
+    font-size: 12px;
+  }
+
+  .cart-subtotal-price strong {
+    font-size: 13px;
   }
 
   .cart-tax-hint {
     display: none;
+  }
+
+  .btn-checkout-floating {
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+
+  /* Title row: prevent table tag from being pushed down */
+  .cart-title-row {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .cart-table-tag {
+    white-space: nowrap;
+    font-size: 10px;
   }
 }
 </style>
