@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Bot,
@@ -7,9 +7,6 @@ import {
   X,
   Sparkles,
   ExternalLink,
-  Minus,
-  Maximize2,
-  Minimize2,
 } from 'lucide-vue-next'
 import { useChatbotStore } from '@/stores/chatbotStore'
 
@@ -18,12 +15,6 @@ const chatbotStore = useChatbotStore()
 
 const inputText = ref('')
 const messagesContainer = ref<HTMLDivElement | null>()
-
-// Window state: 'normal' | 'minimized' | 'fullscreen'
-const windowState = ref<'normal' | 'minimized' | 'fullscreen'>('normal')
-
-const isMinimized = computed(() => windowState.value === 'minimized')
-const isFullscreen = computed(() => windowState.value === 'fullscreen')
 
 function scrollToBottom() {
   nextTick(() => {
@@ -47,14 +38,6 @@ watch(
   }
 )
 
-// When chat opens, reset to normal state
-watch(
-  () => chatbotStore.isOpen,
-  (isOpen) => {
-    if (isOpen) windowState.value = 'normal'
-  }
-)
-
 function handleSend() {
   const text = inputText.value.trim()
   if (!text) return
@@ -72,25 +55,6 @@ function handleAction(url?: string) {
   if (url) {
     chatbotStore.closeChat()
     router.push(url)
-  }
-}
-
-function toggleMinimize() {
-  if (windowState.value === 'minimized') {
-    windowState.value = 'normal'
-    nextTick(scrollToBottom)
-  } else {
-    windowState.value = 'minimized'
-  }
-}
-
-function toggleFullscreen() {
-  if (windowState.value === 'fullscreen') {
-    windowState.value = 'normal'
-    nextTick(scrollToBottom)
-  } else {
-    windowState.value = 'fullscreen'
-    nextTick(scrollToBottom)
   }
 }
 </script>
@@ -119,16 +83,12 @@ function toggleFullscreen() {
       <div
         v-if="chatbotStore.isOpen"
         class="chatbot-window card-surface"
-        :class="{
-          'window-minimized': isMinimized,
-          'window-fullscreen': isFullscreen,
-        }"
         role="dialog"
         aria-modal="true"
         aria-labelledby="chatbot-header-title"
       >
         <!-- Window Header -->
-        <div class="chat-header" @dblclick="toggleMinimize">
+        <div class="chat-header">
           <div class="chat-header-info">
             <div class="chat-avatar-box">
               <Bot :size="20" />
@@ -143,153 +103,122 @@ function toggleFullscreen() {
                 <span class="chat-table-tag">Meja {{ chatbotStore.currentTable }}</span>
               </div>
               <span class="chat-header-sub">
-                <template v-if="isMinimized">Ketuk untuk buka kembali</template>
-                <template v-else>Aktif melayani · Siap membantu Anda</template>
+                Aktif melayani · Siap membantu Anda
               </span>
             </div>
           </div>
 
           <div class="chat-header-actions">
-            <!-- Minimize Button -->
             <button
               type="button"
               class="chat-action-btn"
-              :title="isMinimized ? 'Buka kembali chat' : 'Minimalkan chat'"
-              :aria-label="isMinimized ? 'Buka kembali chat' : 'Minimalkan chat'"
-              @click.stop="toggleMinimize"
-            >
-              <Minus :size="16" />
-            </button>
-
-            <!-- Fullscreen Toggle Button -->
-            <button
-              v-if="!isMinimized"
-              type="button"
-              class="chat-action-btn"
-              :title="isFullscreen ? 'Kembalikan ukuran' : 'Layar penuh'"
-              :aria-label="isFullscreen ? 'Kembalikan ukuran' : 'Perbesar layar penuh'"
-              @click.stop="toggleFullscreen"
-            >
-              <Minimize2 v-if="isFullscreen" :size="15" />
-              <Maximize2 v-else :size="15" />
-            </button>
-
-            <!-- Close Button -->
-            <button
-              type="button"
-              class="chat-action-btn btn-close-chat"
               title="Tutup chat"
               aria-label="Tutup chat"
-              @click.stop="chatbotStore.closeChat"
+              @click="chatbotStore.closeChat"
             >
-              <X :size="16" />
+              <X :size="18" />
             </button>
           </div>
         </div>
 
-        <!-- Messages Body (hidden when minimized) -->
-        <Transition name="body-collapse">
-          <div v-if="!isMinimized" class="chat-body-area">
-            <!-- Messages Body -->
-            <div ref="messagesContainer" class="chat-messages-body">
-              <div
-                v-for="msg in chatbotStore.messages"
-                :key="msg.id"
-                class="message-row"
-                :class="[`msg-${msg.sender}`]"
-              >
-                <!-- Bot Avatar for bot messages -->
-                <div v-if="msg.sender === 'bot'" class="msg-bot-avatar">
-                  <Bot :size="14" />
-                </div>
-
-                <div class="msg-bubble-wrap">
-                  <!-- Message Bubble -->
-                  <div class="msg-bubble">
-                    <p
-                      class="msg-text"
-                      v-html="
-                        msg.text
-                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                          .replace(/\n/g, '<br/>')
-                      "
-                    />
-                  </div>
-
-                  <!-- Message Timestamp -->
-                  <span class="msg-time">{{ msg.timestamp }}</span>
-
-                  <!-- Action Link Button if message has an actionable CTA -->
-                  <div v-if="msg.action" class="msg-action-wrap">
-                    <button
-                      type="button"
-                      class="msg-action-btn"
-                      @click="handleAction(msg.action.url)"
-                    >
-                      <ExternalLink :size="13" />
-                      <span>{{ msg.action.label }}</span>
-                    </button>
-                  </div>
-
-                  <!-- Quick Reply Chips -->
-                  <div
-                    v-if="msg.quickReplies && msg.quickReplies.length > 0"
-                    class="quick-replies-wrap"
-                  >
-                    <button
-                      v-for="(reply, rIdx) in msg.quickReplies"
-                      :key="rIdx"
-                      type="button"
-                      class="quick-reply-chip"
-                      @click="handleQuickReply(reply)"
-                    >
-                      <span>{{ reply }}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Typing Indicator -->
-              <div v-if="chatbotStore.isTyping" class="message-row msg-bot">
-                <div class="msg-bot-avatar">
-                  <Bot :size="14" />
-                </div>
-                <div class="msg-bubble typing-bubble">
-                  <span class="typing-dot" />
-                  <span class="typing-dot" />
-                  <span class="typing-dot" />
-                </div>
-              </div>
+        <!-- Messages Body -->
+        <div ref="messagesContainer" class="chat-messages-body">
+          <div
+            v-for="msg in chatbotStore.messages"
+            :key="msg.id"
+            class="message-row"
+            :class="[`msg-${msg.sender}`]"
+          >
+            <!-- Bot Avatar for bot messages -->
+            <div v-if="msg.sender === 'bot'" class="msg-bot-avatar">
+              <Bot :size="14" />
             </div>
 
-            <!-- Chat Input Footer -->
-            <div class="chat-input-footer">
-              <form class="chat-form" @submit.prevent="handleSend">
-                <input
-                  v-model="inputText"
-                  type="text"
-                  placeholder="Tanya MejaKu Support..."
-                  maxlength="200"
-                  class="chat-input"
-                  @keydown.enter.prevent="handleSend"
+            <div class="msg-bubble-wrap">
+              <!-- Message Bubble -->
+              <div class="msg-bubble">
+                <p
+                  class="msg-text"
+                  v-html="
+                    msg.text
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\n/g, '<br/>')
+                  "
                 />
-                <button
-                  type="submit"
-                  class="btn-send"
-                  :disabled="!inputText.trim()"
-                  aria-label="Kirim pesan"
-                >
-                  <Send :size="15" />
-                </button>
-              </form>
+              </div>
 
-              <div class="chat-disclaimer">
-                <Sparkles :size="11" />
-                <span>AI cerdas MejaKu · Terhubung langsung dengan mejamu</span>
+              <!-- Message Timestamp -->
+              <span class="msg-time">{{ msg.timestamp }}</span>
+
+              <!-- Action Link Button if message has an actionable CTA -->
+              <div v-if="msg.action" class="msg-action-wrap">
+                <button
+                  type="button"
+                  class="msg-action-btn"
+                  @click="handleAction(msg.action.url)"
+                >
+                  <ExternalLink :size="13" />
+                  <span>{{ msg.action.label }}</span>
+                </button>
+              </div>
+
+              <!-- Quick Reply Chips -->
+              <div
+                v-if="msg.quickReplies && msg.quickReplies.length > 0"
+                class="quick-replies-wrap"
+              >
+                <button
+                  v-for="(reply, rIdx) in msg.quickReplies"
+                  :key="rIdx"
+                  type="button"
+                  class="quick-reply-chip"
+                  @click="handleQuickReply(reply)"
+                >
+                  <span>{{ reply }}</span>
+                </button>
               </div>
             </div>
           </div>
-        </Transition>
+
+          <!-- Typing Indicator -->
+          <div v-if="chatbotStore.isTyping" class="message-row msg-bot">
+            <div class="msg-bot-avatar">
+              <Bot :size="14" />
+            </div>
+            <div class="msg-bubble typing-bubble">
+              <span class="typing-dot" />
+              <span class="typing-dot" />
+              <span class="typing-dot" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Input Footer -->
+        <div class="chat-input-footer">
+          <form class="chat-form" @submit.prevent="handleSend">
+            <input
+              v-model="inputText"
+              type="text"
+              placeholder="Tanya MejaKu Support..."
+              maxlength="200"
+              class="chat-input"
+              @keydown.enter.prevent="handleSend"
+            />
+            <button
+              type="submit"
+              class="btn-send"
+              :disabled="!inputText.trim()"
+              aria-label="Kirim pesan"
+            >
+              <Send :size="15" />
+            </button>
+          </form>
+
+          <div class="chat-disclaimer">
+            <Sparkles :size="11" />
+            <span>AI cerdas MejaKu · Terhubung langsung dengan mejamu</span>
+          </div>
+        </div>
       </div>
     </Transition>
   </div>
@@ -362,7 +291,7 @@ function toggleFullscreen() {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* ─── Chatbot Window ─── */
+/* Chatbot Window */
 .chatbot-window {
   width: 375px;
   max-width: calc(100vw - 32px);
@@ -375,70 +304,19 @@ function toggleFullscreen() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition:
-    width 0.32s cubic-bezier(0.34, 1.4, 0.64, 1),
-    height 0.32s cubic-bezier(0.34, 1.4, 0.64, 1),
-    border-radius 0.32s ease,
-    bottom 0.32s ease,
-    right 0.32s ease;
 }
 
-/* MINIMIZED STATE: only header bar visible */
-.window-minimized {
-  height: auto !important;
-  min-height: 0;
-  max-height: none;
-  border-radius: 16px;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16), 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.window-minimized .chat-header {
-  border-radius: 16px;
-  border-bottom: none;
-}
-
-/* FULLSCREEN STATE */
-.window-fullscreen {
-  position: fixed !important;
-  bottom: 0 !important;
-  right: 0 !important;
-  left: 0 !important;
-  top: 0 !important;
-  width: 100vw !important;
-  max-width: 100vw !important;
-  height: 100vh !important;
-  max-height: 100vh !important;
-  border-radius: 0 !important;
-  z-index: 1300;
-}
-
-/* On desktop, fullscreen is centered at a larger size */
-@media (min-width: 641px) {
-  .window-fullscreen {
-    bottom: 0 !important;
-    right: 0 !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    border-radius: 0 !important;
-  }
-}
-
-/* ─── Chat Header ─── */
+/* Chat Header */
 .chat-header {
   background: #1E293B;
   color: #FFFFFF;
-  padding: 14px 12px 14px 16px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
   border-bottom: 1px solid #334155;
   gap: 10px;
-  user-select: none;
-  cursor: default;
 }
 
 .chat-header-info {
@@ -528,17 +406,15 @@ function toggleFullscreen() {
 .chat-header-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
 }
 
 .chat-action-btn {
   color: #94A3B8;
   background: transparent;
   border: none;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-md);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
   transition: all 0.15s ease;
   display: flex;
   align-items: center;
@@ -552,21 +428,7 @@ function toggleFullscreen() {
   color: #FFFFFF;
 }
 
-/* Close button subtle red tint on hover */
-.btn-close-chat:hover {
-  background-color: rgba(239, 68, 68, 0.25);
-  color: #FCA5A5;
-}
-
-/* ─── Body Area (collapsible) ─── */
-.chat-body-area {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* ─── Chat Messages Body ─── */
+/* Chat Messages Body */
 .chat-messages-body {
   flex: 1;
   padding: 14px 16px;
@@ -717,7 +579,7 @@ function toggleFullscreen() {
   transform: translateY(-1px);
 }
 
-/* Typing Indicator */
+/* Typing Indicator Animation */
 .typing-bubble {
   display: inline-flex;
   align-items: center;
@@ -824,7 +686,7 @@ function toggleFullscreen() {
   margin-top: 6px;
 }
 
-/* ─── Drawer Open/Close Animation ─── */
+/* Drawer Transitions */
 .chat-slide-enter-active {
   animation: chatOpen 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
@@ -856,41 +718,6 @@ function toggleFullscreen() {
     opacity: 0;
     transform: translateY(14px) scale(0.94);
     transform-origin: bottom right;
-  }
-}
-
-/* ─── Body collapse animation ─── */
-.body-collapse-enter-active {
-  animation: bodyExpand 0.28s cubic-bezier(0.34, 1.2, 0.64, 1) both;
-}
-
-.body-collapse-leave-active {
-  animation: bodyCollapse 0.2s ease both;
-}
-
-@keyframes bodyExpand {
-  from {
-    opacity: 0;
-    transform: scaleY(0.85);
-    transform-origin: top center;
-  }
-  to {
-    opacity: 1;
-    transform: scaleY(1);
-    transform-origin: top center;
-  }
-}
-
-@keyframes bodyCollapse {
-  from {
-    opacity: 1;
-    transform: scaleY(1);
-    transform-origin: top center;
-  }
-  to {
-    opacity: 0;
-    transform: scaleY(0.85);
-    transform-origin: top center;
   }
 }
 
@@ -937,24 +764,8 @@ function toggleFullscreen() {
     border-radius: 18px;
   }
 
-  /* Minimized on mobile: full width compact bar */
-  .window-minimized {
-    width: 100% !important;
-    border-radius: 16px;
-  }
-
-  /* Fullscreen on mobile */
-  .window-fullscreen {
-    border-radius: 0 !important;
-    height: 100dvh !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    top: 0 !important;
-  }
-
   .chat-header {
-    padding: 12px 10px 12px 14px;
+    padding: 12px 14px;
   }
 
   .chat-header-title {
