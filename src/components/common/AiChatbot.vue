@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Bot,
@@ -57,18 +57,103 @@ function handleAction(url?: string) {
     router.push(url)
   }
 }
+
+// ─── DRAGGABLE LAUNCHER SYSTEM ───
+const launcherPos = ref<{ x: number | null; y: number | null }>({ x: null, y: null })
+const isDragging = ref(false)
+let dragStartX = 0
+let dragStartY = 0
+let initialLeft = 0
+let initialTop = 0
+let hasMoved = false
+
+const launcherStyle = computed(() => {
+  if (launcherPos.value.x !== null && launcherPos.value.y !== null) {
+    return {
+      left: `${launcherPos.value.x}px`,
+      top: `${launcherPos.value.y}px`,
+      right: 'auto',
+      bottom: 'auto',
+    }
+  }
+  return {}
+})
+
+function onPointerDown(e: PointerEvent) {
+  // Only primary mouse click or touch
+  if (e.button !== 0) return
+  const target = e.currentTarget as HTMLElement
+  try {
+    target.setPointerCapture(e.pointerId)
+  } catch (_) {
+    // ignore
+  }
+
+  const rect = target.getBoundingClientRect()
+  dragStartX = e.clientX
+  dragStartY = e.clientY
+  initialLeft = rect.left
+  initialTop = rect.top
+  hasMoved = false
+  isDragging.value = true
+}
+
+function onPointerMove(e: PointerEvent) {
+  if (!isDragging.value) return
+  const deltaX = e.clientX - dragStartX
+  const deltaY = e.clientY - dragStartY
+
+  if (!hasMoved && Math.hypot(deltaX, deltaY) > 5) {
+    hasMoved = true
+  }
+
+  if (hasMoved) {
+    const btnSize = 54
+    const pad = 12
+    const minX = pad
+    const maxX = Math.max(pad, window.innerWidth - btnSize - pad)
+    const minY = pad
+    const maxY = Math.max(pad, window.innerHeight - btnSize - pad)
+
+    const newX = Math.min(Math.max(initialLeft + deltaX, minX), maxX)
+    const newY = Math.min(Math.max(initialTop + deltaY, minY), maxY)
+
+    launcherPos.value = { x: newX, y: newY }
+  }
+}
+
+function onPointerUp(e: PointerEvent) {
+  if (!isDragging.value) return
+  const target = e.currentTarget as HTMLElement
+  try {
+    target.releasePointerCapture(e.pointerId)
+  } catch (_) {
+    // ignore
+  }
+  isDragging.value = false
+
+  if (!hasMoved) {
+    // Clean tap/click without drag
+    chatbotStore.toggleChat()
+  }
+}
 </script>
 
 <template>
   <div class="chatbot-wrapper" aria-label="Asisten AI MejaKu">
-    <!-- Floating Trigger Launcher Button -->
+    <!-- Floating Trigger Launcher Button (Draggable) -->
     <button
       v-if="!chatbotStore.isOpen"
       type="button"
       class="chatbot-launcher-btn"
-      aria-label="Buka Chatbot AI Bantuan MejaKu"
-      title="Tanya MejaKu Support"
-      @click="chatbotStore.toggleChat"
+      :class="{ 'is-dragging': isDragging }"
+      :style="launcherStyle"
+      aria-label="Buka Chatbot AI Bantuan MejaKu (Dapat digeser)"
+      title="Tanya MejaKu Support · Tahan & geser untuk memindahkan posisi"
+      @pointerdown="onPointerDown"
+      @pointermove="onPointerMove"
+      @pointerup="onPointerUp"
+      @pointercancel="onPointerUp"
     >
       <Bot :size="22" class="bot-icon" />
       <span class="online-indicator-dot" />
@@ -233,10 +318,12 @@ function handleAction(url?: string) {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  pointer-events: none;
 }
 
-/* Floating Launcher Button */
+/* Floating Launcher Button (Draggable) */
 .chatbot-launcher-btn {
+  pointer-events: auto;
   width: 52px;
   height: 52px;
   border-radius: var(--radius-full);
@@ -245,18 +332,34 @@ function handleAction(url?: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
   box-shadow: 0 10px 24px rgba(30, 41, 59, 0.35), 0 2px 8px rgba(0, 0, 0, 0.12);
   border: 2px solid rgba(255, 255, 255, 0.25);
-  transition: all 0.25s var(--ease-spring);
-  cursor: pointer;
+  transition: transform 0.2s var(--ease-spring), box-shadow 0.2s ease, background-color 0.2s ease;
+  cursor: grab;
   padding: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .chatbot-launcher-btn:hover {
   background-color: #0F172A;
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 14px 30px rgba(30, 41, 59, 0.45);
+}
+
+.chatbot-launcher-btn.is-dragging {
+  cursor: grabbing !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.5) !important;
+  transition: none !important;
+}
+
+.chatbot-window {
+  pointer-events: auto;
 }
 
 .bot-icon {

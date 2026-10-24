@@ -71,7 +71,7 @@ function scrollToTimeline() {
     <main class="container-app confirm-main">
       <AppBreadcrumb :items="breadcrumbItems" />
 
-      <!-- Page Heading & Order Number Badge -->
+      <!-- Page Heading -->
       <div class="confirm-header-row">
         <div>
           <div class="success-banner-pill">
@@ -83,13 +83,6 @@ function scrollToTimeline() {
           <p class="confirm-desc">
             Terima kasih! Pembayaran berhasil diverifikasi. Koki di {{ orderStore.currentItemConfig.merchant }} telah menerima pesananmu dan sedang mulai meracik hidangan segar.
           </p>
-        </div>
-
-        <div class="order-number-card">
-          <span class="ord-tag">NO. PESANAN</span>
-          <strong class="ord-code font-sans">
-            {{ orderStore.currentOrder?.orderNumber || '#MJK-72600-BA' }}
-          </strong>
         </div>
       </div>
 
@@ -164,8 +157,23 @@ function scrollToTimeline() {
 
         <!-- RIGHT COLUMN: CTA & Ringkasan Hidangan -->
         <aside class="confirm-right-col">
-          <!-- Actions: Lacak & Kembali -->
+          <!-- Actions: Order Number, Lacak & Kembali -->
           <div class="confirm-actions-wrap">
+            <div class="order-number-card">
+              <div class="ord-card-row">
+                <div>
+                  <span class="ord-tag">NO. PESANAN</span>
+                  <strong class="ord-code font-sans">
+                    {{ orderStore.currentOrder?.orderNumber || '#MJK-72600-BA' }}
+                  </strong>
+                </div>
+                <div class="ord-badge-live">
+                  <span class="pulse-dot"></span>
+                  <span>Terverifikasi</span>
+                </div>
+              </div>
+            </div>
+
             <button
               type="button"
               class="btn-primary btn-track"
@@ -280,26 +288,56 @@ function scrollToTimeline() {
 }
 
 .order-number-card {
+  width: 100%;
   background-color: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 14px 20px;
-  display: flex;
-  flex-direction: column;
+  padding: 16px 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.ord-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .ord-tag {
-  font-size: 10px;
+  display: block;
+  font-size: 11px;
   font-weight: 800;
   color: var(--text-muted);
   letter-spacing: 0.5px;
+  margin-bottom: 2px;
 }
 
 .ord-code {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--primary);
+  letter-spacing: 0.5px;
+}
+
+.ord-badge-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--success-soft);
+  color: var(--success);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--success);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
 }
 
 /* Two-column layout (800px Left, 432px Right) */

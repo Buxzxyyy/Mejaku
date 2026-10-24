@@ -291,31 +291,33 @@ function clearSearch() {
         class="floating-cart-bar"
         aria-label="Ringkasan Pesanan"
       >
-        <div class="cart-bar-inner">
-          <div class="cart-bar-left">
-            <div class="cart-badge-icon">
-              <ShoppingBag :size="20" />
-              <span class="cart-pill-count">{{ orderStore.totalQuantity }}</span>
+        <div class="container-app floating-cart-container">
+          <div class="cart-bar-inner">
+            <div class="cart-bar-left">
+              <div class="cart-badge-icon">
+                <ShoppingBag :size="20" />
+                <span class="cart-pill-count">{{ orderStore.totalQuantity }}</span>
+              </div>
+
+              <div class="cart-text-details">
+                <div class="cart-title-row">
+                  <span class="cart-item-name">{{ orderStore.totalQuantity }} Menu Dipilih</span>
+                  <span class="cart-table-tag">Meja {{ orderStore.table.tableNumber }}</span>
+                </div>
+                <div class="cart-subtotal-price">
+                  Total: <strong>{{ formatRupiah(orderStore.pricing.total) }}</strong>
+                  <span class="cart-tax-hint">(Termasuk Pajak & Layanan)</span>
+                </div>
+              </div>
             </div>
 
-            <div class="cart-text-details">
-              <div class="cart-title-row">
-                <span class="cart-item-name">{{ orderStore.totalQuantity }} Menu Dipilih</span>
-                <span class="cart-table-tag">Meja {{ orderStore.table.tableNumber }}</span>
-              </div>
-              <div class="cart-subtotal-price">
-                Total: <strong>{{ formatRupiah(orderStore.pricing.total) }}</strong>
-                <span class="cart-tax-hint">(Termasuk Pajak & Layanan)</span>
-              </div>
+            <div class="cart-bar-right">
+              <RouterLink to="/checkout" class="btn-checkout-floating">
+                <span class="checkout-btn-full">Lanjut ke Pembayaran</span>
+                <span class="checkout-btn-short">Lanjut Bayar</span>
+                <ArrowRight :size="18" />
+              </RouterLink>
             </div>
-          </div>
-
-          <div class="cart-bar-right">
-            <RouterLink to="/checkout" class="btn-checkout-floating">
-              <span class="checkout-btn-full">Lanjut ke Pembayaran</span>
-              <span class="checkout-btn-short">Lanjut Bayar</span>
-              <ArrowRight :size="18" />
-            </RouterLink>
           </div>
         </div>
       </aside>
@@ -924,12 +926,17 @@ function clearSearch() {
 /* 6. FLOATING BOTTOM CART BAR */
 .floating-cart-bar {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 0;
   right: 0;
+  width: 100%;
   z-index: 90;
   pointer-events: none;
-  /* On mobile, avoid chatbot button (bottom-right 52px + margin) */
+}
+
+.floating-cart-container {
+  pointer-events: none;
+  width: 100%;
 }
 
 .cart-bar-inner {
@@ -944,8 +951,6 @@ function clearSearch() {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.12);
   gap: 16px;
-  max-width: 1360px;
-  margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
 }
@@ -1177,18 +1182,21 @@ function clearSearch() {
     align-items: flex-start;
   }
 
-  /* MASALAH 5 FIX: Floating cart bar - mobile compact, never offside, fits screen cleanly */
+  /* Universal Mobile Responsive: Floating cart bar adapts fluidly on any screen width */
   .floating-cart-bar {
-    bottom: 84px;
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-width: calc(100vw - 24px);
-    box-sizing: border-box;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    width: 100%;
+  }
+
+  .floating-cart-container {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 
   .cart-bar-inner {
-    padding: 10px 12px;
+    padding: 11px 14px;
     gap: 8px;
     border-radius: var(--radius-lg);
     box-sizing: border-box;
