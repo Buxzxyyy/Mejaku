@@ -908,25 +908,34 @@ function submitRating() {
     margin-bottom: 16px;
   }
 
-  /* Action bar: Tambahkan ke Pesanan + Stepper */
+  /* Action bar: compact row layout on mobile - stepper left, button right */
   .order-action-bar {
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
-    align-items: stretch;
+    align-items: center;
     padding-top: 8px;
   }
 
-  /* Make QuantityStepper feel like its own row on mobile */
+  /* QuantityStepper stays compact on left */
   .order-action-bar > :first-child {
-    align-self: center;
+    flex-shrink: 0;
   }
 
-  /* "Tambahkan ke Pesanan" button: smaller text & padding on mobile */
+  /* "Tambahkan ke Pesanan" button: smaller text & padding on mobile, takes remaining width */
   .btn-add-order {
-    padding: 13px 16px;
-    font-size: 14px;
-    width: 100%;
+    padding: 12px 14px;
+    font-size: 13px;
+    flex: 1;
     justify-content: center;
+    min-width: 0;
+  }
+
+  /* Hide price text in button on very small screens to save space */
+  @media (max-width: 380px) {
+    .btn-add-order {
+      font-size: 12px;
+      padding: 11px 10px;
+    }
   }
 
   /* Food title: clamp to fit smaller screen */

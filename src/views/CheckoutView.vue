@@ -638,14 +638,14 @@ function handleCreateOrder() {
 }
 
 .order-item-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 16px;
   background-color: var(--surface-warm);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px;
-  flex-wrap: wrap;
+  padding: 16px;
 }
 
 .item-thumb {
@@ -658,7 +658,8 @@ function handleCreateOrder() {
 
 .item-details {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
+  align-self: start;
 }
 
 .item-merchant {
@@ -694,10 +695,15 @@ function handleCreateOrder() {
 }
 
 .item-price-col {
+  grid-column: 1 / -1; /* Span full width as 2nd row */
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 8px;
 }
 
 .item-price {

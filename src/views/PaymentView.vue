@@ -1310,4 +1310,304 @@ function handleConfirmManual() {
   font-size: 13px;
   color: #0369A1;
 }
+/* ─── VA Bank Chip Selector ─── */
+.bank-selector-group,
+.ewallet-selector-group {
+  margin-bottom: 20px;
+}
+
+.bank-selector-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bank-chips-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bank-chip-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.bank-chip-btn:hover {
+  border-color: #D6BCAB;
+  background: var(--surface-warm);
+}
+
+.bank-chip-btn.active {
+  border-color: var(--primary);
+  background-color: var(--primary-soft);
+}
+
+.bank-logo-badge {
+  background-color: #1E293B;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.bank-chip-btn.active .bank-logo-badge {
+  background-color: var(--primary);
+}
+
+.bank-name-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ─── E-Wallet Chip Selector ─── */
+.ewallet-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.ewallet-chip-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.ewallet-chip-btn:hover {
+  border-color: #D6BCAB;
+  background: var(--surface-warm);
+}
+
+.ewallet-chip-btn.active {
+  border-color: var(--primary);
+  background-color: var(--primary-soft);
+}
+
+.ewallet-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ewallet-name-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ─── VA Display Card ─── */
+.va-panel,
+.ewallet-panel {
+  padding: 28px;
+}
+
+.va-display-card,
+.ewallet-display-card {
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.va-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.va-card-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.va-merchant-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.va-number-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 10px 0;
+  border-top: 1px dashed var(--border);
+  border-bottom: 1px dashed var(--border);
+}
+
+.va-number-text {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 2px;
+  word-break: break-all;
+}
+
+.va-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.va-total-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.va-total-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+/* E-Wallet Input */
+.ewallet-phone-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ewallet-input-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ewallet-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ewallet-input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+}
+
+.ewallet-tel-input {
+  width: 100%;
+  padding: 11px 12px 11px 40px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--surface);
+  transition: border-color 0.2s ease;
+  outline: none;
+}
+
+.ewallet-tel-input:focus {
+  border-color: var(--primary);
+}
+
+.ewallet-input-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ─── Mobile Fixes for PaymentView ─── */
+@media (max-width: 640px) {
+  .payment-main {
+    padding-top: 12px;
+    padding-bottom: 32px;
+  }
+
+  .methods-panel,
+  .qris-panel,
+  .va-panel,
+  .ewallet-panel {
+    padding: 16px;
+  }
+
+  .panel-title {
+    font-size: 16px;
+  }
+
+  .qris-title {
+    font-size: 16px;
+  }
+
+  /* VA number: smaller on mobile */
+  .va-number-text {
+    font-size: 15px;
+    letter-spacing: 1px;
+  }
+
+  .va-total-amount {
+    font-size: 17px;
+  }
+
+  /* Bank chips: 2-col grid on mobile */
+  .bank-chips-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .bank-chip-btn {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 10px;
+  }
+
+  .bank-name-text {
+    font-size: 12px;
+  }
+
+  /* Timer compact */
+  .deadline-panel {
+    padding: 12px 14px;
+  }
+
+  .digit-box {
+    font-size: 16px;
+    min-width: 30px;
+    padding: 3px 6px;
+  }
+}
 </style>

@@ -928,6 +928,7 @@ function clearSearch() {
   right: 0;
   z-index: 90;
   pointer-events: none;
+  /* On mobile, avoid chatbot button (bottom-right 52px + margin) */
 }
 
 .cart-bar-inner {
@@ -1123,19 +1124,22 @@ function clearSearch() {
     padding-right: 16px;
   }
 
+  /* MASALAH 4 FIX: Filter category wrap jadi 2-kolom grid di mobile */
   .categories-scroll-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
+    overflow-x: visible;
     padding-bottom: 2px;
-    /* Ensure full scroll on mobile without clipping */
-    padding-right: 16px;
+    padding-right: 0;
   }
 
   .cat-tab-btn {
-    padding: 8px 14px;
+    width: 100%;
+    justify-content: center;
+    padding: 9px 8px;
     font-size: 13px;
-    gap: 6px;
-    /* Prevent shrinking on small screens */
-    flex-shrink: 0;
+    gap: 5px;
   }
 
   /* Quick filter chips: ensure wrapping and sizing are compact */
@@ -1164,10 +1168,17 @@ function clearSearch() {
     align-items: flex-start;
   }
 
-  /* Floating cart bar: compact on mobile */
+  /* MASALAH 5 FIX: Floating cart bar - jangan sampai overlap chatbot button */
+  .floating-cart-bar {
+    bottom: 84px; /* geser ke atas supaya chatbot button (52px + 24px margin + 8px) tidak tertimpa */
+    left: 12px;
+    right: 12px;
+  }
+
   .cart-bar-inner {
     padding: 12px 14px;
     gap: 10px;
+    border-radius: var(--radius-lg);
   }
 
   .cart-item-name {
