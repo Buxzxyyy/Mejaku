@@ -2,15 +2,11 @@
 import { ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  MessageSquare,
   Bot,
   Send,
   X,
-  Minimize2,
   Sparkles,
-  User,
   ExternalLink,
-  BellRing,
 } from 'lucide-vue-next'
 import { useChatbotStore } from '@/stores/chatbotStore'
 
@@ -65,7 +61,7 @@ function handleAction(url?: string) {
 
 <template>
   <div class="chatbot-wrapper" aria-label="Asisten AI MejaKu">
-    <!-- Floating Trigger Launcher Button (Compact Circular FAB) -->
+    <!-- Floating Trigger Launcher Button -->
     <button
       v-if="!chatbotStore.isOpen"
       type="button"
@@ -74,7 +70,7 @@ function handleAction(url?: string) {
       title="Tanya MejaKu Support"
       @click="chatbotStore.toggleChat"
     >
-      <Bot :size="24" class="bot-icon" />
+      <Bot :size="22" class="bot-icon" />
       <span class="online-indicator-dot" />
 
       <span v-if="chatbotStore.unreadCount > 0" class="launcher-badge">
@@ -95,15 +91,16 @@ function handleAction(url?: string) {
         <div class="chat-header">
           <div class="chat-header-info">
             <div class="chat-avatar-box">
-              <Bot :size="22" />
+              <Bot :size="20" />
               <span class="avatar-status-dot" />
             </div>
-            <div>
+            <div class="chat-header-titles">
               <div class="chat-title-row">
                 <h3 id="chatbot-header-title" class="chat-header-title">
                   MejaKu Support
                 </h3>
                 <span class="ai-badge">AI</span>
+                <span class="chat-table-tag">Meja {{ chatbotStore.currentTable }}</span>
               </div>
               <span class="chat-header-sub">
                 Aktif melayani · Siap membantu Anda
@@ -115,7 +112,8 @@ function handleAction(url?: string) {
             <button
               type="button"
               class="chat-action-btn"
-              title="Tutup"
+              title="Tutup chat"
+              aria-label="Tutup chat"
               @click="chatbotStore.closeChat"
             >
               <X :size="18" />
@@ -133,13 +131,12 @@ function handleAction(url?: string) {
           >
             <!-- Bot Avatar for bot messages -->
             <div v-if="msg.sender === 'bot'" class="msg-bot-avatar">
-              <Bot :size="16" />
+              <Bot :size="14" />
             </div>
 
             <div class="msg-bubble-wrap">
               <!-- Message Bubble -->
               <div class="msg-bubble">
-                <!-- Simple Markdown-like parser for bold text and line breaks -->
                 <p
                   class="msg-text"
                   v-html="
@@ -160,7 +157,7 @@ function handleAction(url?: string) {
                   class="msg-action-btn"
                   @click="handleAction(msg.action.url)"
                 >
-                  <ExternalLink :size="14" />
+                  <ExternalLink :size="13" />
                   <span>{{ msg.action.label }}</span>
                 </button>
               </div>
@@ -186,7 +183,7 @@ function handleAction(url?: string) {
           <!-- Typing Indicator -->
           <div v-if="chatbotStore.isTyping" class="message-row msg-bot">
             <div class="msg-bot-avatar">
-              <Bot :size="16" />
+              <Bot :size="14" />
             </div>
             <div class="msg-bubble typing-bubble">
               <span class="typing-dot" />
@@ -202,7 +199,8 @@ function handleAction(url?: string) {
             <input
               v-model="inputText"
               type="text"
-              placeholder="Tanya MejaKu Support (contoh: Rekomendasi pedas, panggil pramusaji)..."
+              placeholder="Tanya MejaKu Support..."
+              maxlength="200"
               class="chat-input"
               @keydown.enter.prevent="handleSend"
             />
@@ -212,13 +210,13 @@ function handleAction(url?: string) {
               :disabled="!inputText.trim()"
               aria-label="Kirim pesan"
             >
-              <Send :size="16" />
+              <Send :size="15" />
             </button>
           </form>
 
           <div class="chat-disclaimer">
             <Sparkles :size="11" />
-            <span>Didukung AI cerdas MejaKu · Siap membantu kapan saja</span>
+            <span>AI cerdas MejaKu · Terhubung langsung dengan mejamu</span>
           </div>
         </div>
       </div>
@@ -237,18 +235,18 @@ function handleAction(url?: string) {
   align-items: flex-end;
 }
 
-/* Floating Launcher Button (Compact 52px Circular FAB) */
+/* Floating Launcher Button */
 .chatbot-launcher-btn {
   width: 52px;
   height: 52px;
   border-radius: var(--radius-full);
-  background-color: #2D1A10;
+  background-color: #1E293B;
   color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  box-shadow: 0 10px 24px rgba(45, 26, 16, 0.4), 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 24px rgba(30, 41, 59, 0.35), 0 2px 8px rgba(0, 0, 0, 0.12);
   border: 2px solid rgba(255, 255, 255, 0.25);
   transition: all 0.25s var(--ease-spring);
   cursor: pointer;
@@ -256,13 +254,13 @@ function handleAction(url?: string) {
 }
 
 .chatbot-launcher-btn:hover {
-  background-color: #1A0E08;
-  transform: translateY(-3px) scale(1.06);
-  box-shadow: 0 14px 30px rgba(45, 26, 16, 0.55);
+  background-color: #0F172A;
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 14px 30px rgba(30, 41, 59, 0.45);
 }
 
 .bot-icon {
-  color: #FDFBF7;
+  color: #F8FAFC;
 }
 
 .online-indicator-dot {
@@ -273,7 +271,7 @@ function handleAction(url?: string) {
   height: 10px;
   border-radius: var(--radius-full);
   background-color: #22C55E;
-  border: 2px solid #2D1A10;
+  border: 2px solid #1E293B;
 }
 
 .launcher-badge {
@@ -295,40 +293,43 @@ function handleAction(url?: string) {
 
 /* Chatbot Window */
 .chatbot-window {
-  width: 380px;
+  width: 375px;
   max-width: calc(100vw - 32px);
-  height: 560px;
+  height: 540px;
   max-height: calc(100vh - 100px);
   background-color: #FFFFFF;
-  border-radius: 24px;
-  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.22), 0 4px 16px rgba(0, 0, 0, 0.08);
-  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2), 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-/* Chat Header (Refined Dark Slate & Espresso Theme) */
+/* Chat Header */
 .chat-header {
   background: #1E293B;
   color: #FFFFFF;
-  padding: 16px 20px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
   border-bottom: 1px solid #334155;
+  gap: 10px;
 }
 
 .chat-header-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .chat-avatar-box {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
   background: #334155;
   color: #F8FAFC;
@@ -343,76 +344,115 @@ function handleAction(url?: string) {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: var(--radius-full);
   background-color: #22C55E;
   border: 2px solid #1E293B;
+}
+
+.chat-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .chat-title-row {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .chat-header-title {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 800;
   margin: 0;
   color: #FFFFFF;
+  white-space: nowrap;
 }
 
 .ai-badge {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.18);
   color: #F8FAFC;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: var(--radius-full);
   letter-spacing: 0.5px;
 }
 
+.chat-table-tag {
+  background-color: rgba(34, 197, 94, 0.18);
+  color: #86EFAC;
+  border: 1px solid rgba(134, 239, 172, 0.35);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
 .chat-header-sub {
   font-size: 11px;
-  opacity: 0.9;
+  color: #CBD5E1;
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
 }
 
 .chat-action-btn {
-  color: #FFFFFF;
-  padding: 6px;
+  color: #94A3B8;
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .chat-action-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
 }
 
 /* Chat Messages Body */
 .chat-messages-body {
   flex: 1;
-  padding: 18px;
+  padding: 14px 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   background-color: #FAF6F0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(30, 41, 59, 0.18) transparent;
+}
+
+.chat-messages-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.chat-messages-body::-webkit-scrollbar-thumb {
+  background-color: rgba(30, 41, 59, 0.2);
+  border-radius: 99px;
 }
 
 .message-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
 }
 
@@ -424,39 +464,26 @@ function handleAction(url?: string) {
 .msg-user {
   align-self: flex-end;
   flex-direction: row-reverse;
-  max-width: 85%;
+  max-width: 88%;
 }
 
 .msg-bot-avatar {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--radius-full);
-  background-color: #F1E9DF;
+  background-color: #E2D9CF;
   color: #1E293B;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-bottom: 4px;
-}
-
-.msg-user-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-full);
-  background-color: #1E293B;
-  color: #FFFFFF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .msg-bubble-wrap {
   display: flex;
   flex-direction: column;
-  max-width: 82%;
+  max-width: 85%;
 }
 
 .msg-user .msg-bubble-wrap {
@@ -465,11 +492,11 @@ function handleAction(url?: string) {
 }
 
 .msg-bubble {
-  padding: 12px 16px;
-  border-radius: 18px;
-  font-size: 13.5px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 13px;
   line-height: 1.5;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .msg-bot .msg-bubble {
@@ -491,10 +518,10 @@ function handleAction(url?: string) {
 }
 
 .msg-time {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--text-muted);
-  margin-top: 4px;
-  padding: 0 4px;
+  margin-top: 3px;
+  padding: 0 3px;
 }
 
 .msg-action-wrap {
@@ -505,19 +532,20 @@ function handleAction(url?: string) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: #F1E9DF;
-  color: #1E293B;
-  border: 1.5px solid #CBD5E1;
-  padding: 6px 14px;
+  background-color: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  padding: 7px 14px;
   border-radius: var(--radius-full);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(194, 65, 12, 0.25);
   transition: all 0.2s ease;
 }
 
 .msg-action-btn:hover {
-  background-color: #1E293B;
-  color: #FFFFFF;
+  background-color: #A3360A;
   transform: translateY(-1px);
 }
 
@@ -526,25 +554,28 @@ function handleAction(url?: string) {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .quick-reply-chip {
   background-color: #FFFFFF;
-  border: 1px solid var(--border);
+  border: 1.5px solid #E2D9CF;
   color: var(--text-primary);
-  padding: 6px 12px;
+  padding: 6px 11px;
   border-radius: var(--radius-full);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
+  line-height: 1.35;
   transition: all 0.15s ease;
   text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .quick-reply-chip:hover {
-  background-color: #F1E9DF;
-  border-color: #94A3B8;
-  color: #1E293B;
+  background-color: #F8EFE4;
+  border-color: var(--primary);
+  color: var(--primary);
   transform: translateY(-1px);
 }
 
@@ -553,12 +584,12 @@ function handleAction(url?: string) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 12px 18px;
+  padding: 10px 14px;
 }
 
 .typing-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: var(--radius-full);
   background-color: #1E293B;
   animation: typingBounce 1.2s infinite ease-in-out;
@@ -577,25 +608,26 @@ function handleAction(url?: string) {
     transform: translateY(0);
   }
   30% {
-    transform: translateY(-6px);
+    transform: translateY(-5px);
   }
 }
 
 /* Chat Input Footer */
 .chat-input-footer {
-  padding: 14px 18px;
+  padding: 12px 14px;
   background-color: #FFFFFF;
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .chat-form {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background-color: #FAF6F0;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-full);
-  padding: 4px 6px 4px 16px;
+  padding: 3px 5px 3px 14px;
   transition: border-color 0.2s ease;
 }
 
@@ -607,57 +639,66 @@ function handleAction(url?: string) {
   flex: 1;
   border: none;
   background: transparent;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-primary);
   outline: none;
+  min-width: 0;
+}
+
+.chat-input::placeholder {
+  color: #94A3B8;
+  font-size: 12px;
 }
 
 .btn-send {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
   background-color: #1E293B;
   color: #FFFFFF;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  cursor: pointer;
 }
 
 .btn-send:hover:not(:disabled) {
   background-color: #0F172A;
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .btn-send:disabled {
   background-color: #CBD5E1;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .chat-disclaimer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 10px;
   color: var(--text-muted);
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
-/* Drawer Transitions - Polished open/close animation */
+/* Drawer Transitions */
 .chat-slide-enter-active {
-  animation: chatOpen 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: chatOpen 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
 .chat-slide-leave-active {
-  animation: chatClose 0.22s cubic-bezier(0.4, 0, 1, 1) both;
+  animation: chatClose 0.2s cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 @keyframes chatOpen {
   from {
     opacity: 0;
-    transform: translateY(24px) scale(0.88);
+    transform: translateY(20px) scale(0.92);
     transform-origin: bottom right;
   }
   to {
@@ -675,8 +716,122 @@ function handleAction(url?: string) {
   }
   to {
     opacity: 0;
-    transform: translateY(16px) scale(0.9);
+    transform: translateY(14px) scale(0.94);
     transform-origin: bottom right;
+  }
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
+/* Tablet (641px - 900px) */
+@media (max-width: 900px) and (min-width: 641px) {
+  .chatbot-wrapper {
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .chatbot-window {
+    width: 350px;
+    height: 500px;
+    max-height: calc(100vh - 90px);
+  }
+
+  .chatbot-launcher-btn {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* Mobile (≤ 640px) */
+@media (max-width: 640px) {
+  .chatbot-wrapper {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+    align-items: stretch;
+  }
+
+  .chatbot-launcher-btn {
+    align-self: flex-end;
+    width: 46px;
+    height: 46px;
+  }
+
+  .chatbot-window {
+    width: 100%;
+    max-width: 100%;
+    height: min(500px, calc(100vh - 80px));
+    border-radius: 18px;
+  }
+
+  .chat-header {
+    padding: 12px 14px;
+  }
+
+  .chat-header-title {
+    font-size: 13.5px;
+  }
+
+  .chat-messages-body {
+    padding: 12px 10px;
+    gap: 12px;
+  }
+
+  .msg-bubble-wrap {
+    max-width: 90%;
+  }
+
+  .msg-bubble {
+    padding: 9px 12px;
+    font-size: 12.5px;
+  }
+
+  .quick-reply-chip {
+    padding: 5px 9px;
+    font-size: 11px;
+  }
+
+  .chat-input-footer {
+    padding: 10px 12px;
+  }
+
+  .chat-input {
+    font-size: 12px;
+  }
+
+  .chat-input::placeholder {
+    font-size: 11.5px;
+  }
+
+  .btn-send {
+    width: 30px;
+    height: 30px;
+  }
+
+  .chat-disclaimer {
+    font-size: 9px;
+    margin-top: 4px;
+  }
+}
+
+/* Ultra Compact Mobile (≤ 380px) */
+@media (max-width: 380px) {
+  .chat-title-row {
+    gap: 4px;
+  }
+
+  .chat-header-title {
+    font-size: 13px;
+  }
+
+  .chat-table-tag {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+
+  .quick-reply-chip {
+    font-size: 10.5px;
+    padding: 4px 8px;
   }
 }
 </style>
