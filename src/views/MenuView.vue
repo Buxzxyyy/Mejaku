@@ -482,13 +482,13 @@ function clearSearch() {
 .menu-hero-header {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
-  gap: 32px;
+  gap: 40px;
   align-items: center;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 36px 40px;
-  margin-bottom: 24px;
+  padding: 40px 48px;
+  margin-bottom: 28px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.03);
   position: relative;
   overflow: hidden;
@@ -1069,10 +1069,18 @@ function clearSearch() {
 }
 
 /* Responsive adjustments */
+/* Tablet-landscape / small desktop: keep 2-col but reduce padding slightly */
+@media (max-width: 1100px) and (min-width: 901px) {
+  .menu-hero-header {
+    padding: 32px 36px;
+    gap: 28px;
+  }
+}
+
 @media (max-width: 900px) {
   .menu-hero-header {
     grid-template-columns: 1fr;
-    padding: 24px;
+    padding: 28px;
     gap: 20px;
   }
 
