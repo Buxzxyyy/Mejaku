@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { QrCode, ShoppingBag, CheckCircle, Receipt, X, ArrowRight } from 'lucide-vue-next'
 import { useOrderStore } from '@/stores/orderStore'
@@ -21,6 +21,22 @@ const router = useRouter()
 const orderStore = useOrderStore()
 const showScannerModal = ref(false)
 const showHistoryModal = ref(false)
+
+// Lock body scrolling when any modal is open
+watch([showHistoryModal, showScannerModal], ([hist, scan]) => {
+  if (hist || scan) {
+    document.body.classList.add('modal-open')
+    document.documentElement.classList.add('modal-open')
+  } else {
+    document.body.classList.remove('modal-open')
+    document.documentElement.classList.remove('modal-open')
+  }
+})
+
+onUnmounted(() => {
+  document.body.classList.remove('modal-open')
+  document.documentElement.classList.remove('modal-open')
+})
 
 function goToOrderStatus(orderId: string) {
   orderStore.loadOrderFromHistory(orderId)
@@ -46,7 +62,9 @@ function goToOrderStatus(orderId: string) {
         <div class="table-pill-verified" title="Status Meja Terverifikasi QR">
           <span class="live-pulse-dot" />
           <CheckCircle :size="14" class="verified-icon" />
-          <span class="table-pill-text">Meja {{ orderStore.table.tableNumber }} Terverifikasi</span>
+          <span class="table-pill-text">
+            Meja {{ orderStore.table.tableNumber }}<span class="pill-verified-word"> Terverifikasi</span>
+          </span>
         </div>
 
         <!-- 2. Riwayat Pesanan Button -->
@@ -79,10 +97,11 @@ function goToOrderStatus(orderId: string) {
           type="button"
           class="btn-ganti-meja"
           title="Pindai ulang QR di mejamu atau ganti meja"
+          aria-label="Ganti Meja atau Pindai QR"
           @click="showScannerModal = true"
         >
           <QrCode :size="16" />
-          <span>Ganti Meja / Scan QR</span>
+          <span class="btn-ganti-meja-text">Ganti Meja / Scan QR</span>
         </button>
       </div>
     </div>
@@ -187,7 +206,11 @@ function goToOrderStatus(orderId: string) {
   top: 0;
   z-index: 50;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: all 0.2s ease;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: clip;
 }
 
 .navbar-container {
@@ -356,14 +379,27 @@ function goToOrderStatus(orderId: string) {
 /* Modal Backdrop & Dialog */
 .modal-backdrop {
   position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(6px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  width: 100vw;
+  width: 100dvw;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2200;
+  z-index: 2500;
   padding: 16px;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .modal-card {
@@ -372,6 +408,7 @@ function goToOrderStatus(orderId: string) {
   width: 100%;
   max-width: 540px;
   max-height: 88vh;
+  max-height: 88dvh;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border);
   padding: 24px;
@@ -379,6 +416,8 @@ function goToOrderStatus(orderId: string) {
   flex-direction: column;
   animation: modalScale 0.25s var(--ease-spring);
   position: relative;
+  touch-action: auto;
+  overscroll-behavior: contain;
 }
 
 @keyframes modalScale {
@@ -431,6 +470,7 @@ function goToOrderStatus(orderId: string) {
 .history-modal-card {
   max-width: 540px;
   max-height: 85vh;
+  max-height: 85dvh;
   display: flex;
   flex-direction: column;
 }
@@ -444,7 +484,10 @@ function goToOrderStatus(orderId: string) {
 .history-body {
   overflow-y: auto;
   max-height: 60vh;
+  max-height: 60dvh;
   padding: 4px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .empty-history {
@@ -568,6 +611,33 @@ function goToOrderStatus(orderId: string) {
 
 /* ===================== RESPONSIVE ===================== */
 
+/* Large Tablet / Small Laptop / Mobile Desktop Mode (≤ 1024px) */
+@media (max-width: 1024px) {
+  .btn-ganti-meja-text {
+    display: none;
+  }
+
+  .btn-ganti-meja {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius-full);
+  }
+
+  .btn-nav-history .nav-history-text {
+    display: none;
+  }
+
+  .btn-nav-history {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius-full);
+  }
+}
+
 /* Tablet (≤ 900px): hide brand name text, compress spacing */
 @media (max-width: 900px) {
   .navbar-container {
@@ -588,34 +658,17 @@ function goToOrderStatus(orderId: string) {
     gap: 6px;
   }
 
-  .btn-nav-history .nav-history-text {
-    display: none;
-  }
-
-  .btn-nav-history {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    justify-content: center;
-    border-radius: var(--radius-full);
-  }
-
-  .btn-ganti-meja span {
-    display: none;
-  }
-
-  .btn-ganti-meja {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    justify-content: center;
-    border-radius: var(--radius-full);
-  }
-
   /* History modal full width on tablet */
   .history-modal-card {
     max-width: 100%;
     width: calc(100vw - 32px);
+  }
+}
+
+/* Medium mobile / tablet (≤ 768px): shorten table pill text */
+@media (max-width: 768px) {
+  .pill-verified-word {
+    display: none;
   }
 }
 
@@ -640,14 +693,12 @@ function goToOrderStatus(orderId: string) {
     gap: 6px;
   }
 
-  /* Table pill: show only pulse dot + meja number */
   .table-pill-verified {
     padding: 6px 10px;
     font-size: 11px;
     gap: 5px;
   }
 
-  /* Hide the verified icon on small screens, keep dot */
   .verified-icon {
     display: none;
   }

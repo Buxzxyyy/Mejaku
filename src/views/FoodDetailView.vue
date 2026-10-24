@@ -226,6 +226,15 @@ function submitRating() {
     reviewSubmittedToast.value = false
   }, 4500)
 }
+watch(showRatingModal, (val) => {
+  if (val) {
+    document.body.classList.add('modal-open')
+    document.documentElement.classList.add('modal-open')
+  } else {
+    document.body.classList.remove('modal-open')
+    document.documentElement.classList.remove('modal-open')
+  }
+})
 </script>
 
 <template>
@@ -576,13 +585,20 @@ function submitRating() {
 .food-detail-page {
   background-color: var(--bg);
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .detail-main-content {
   padding-bottom: 96px;
   flex: 1;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Top Navigation Row: Breadcrumb flush left */
@@ -1131,14 +1147,27 @@ function submitRating() {
 /* Modal Backdrop & Rating Modal */
 .modal-backdrop {
   position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 2000;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  width: 100vw;
+  width: 100dvw;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 2500;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .rating-modal-card {

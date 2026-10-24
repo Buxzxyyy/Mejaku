@@ -524,14 +524,27 @@ onUnmounted(() => {
 <style scoped>
 .scanner-backdrop {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  width: 100vw;
+  width: 100dvw;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
   background-color: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2200;
+  z-index: 2500;
   padding: 16px;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .scanner-modal {

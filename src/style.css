@@ -56,15 +56,42 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--bg);
   color: var(--text-primary);
   font-family: var(--font-sans);
   line-height: 1.5;
   overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+#app {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+/* Modal Open Scroll Lock */
+html.modal-open,
+body.modal-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+}
+
+/* Hide floating chatbot button when modal is open so it never peeks through */
+body.modal-open .chatbot-launcher-btn {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 img {
@@ -433,14 +460,27 @@ textarea:focus-visible {
 /* Universal Modal Utility */
 .modal-backdrop {
   position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(6px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  width: 100vw;
+  width: 100dvw;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
+  background-color: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2200;
+  z-index: 2500;
   padding: 16px;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .modal-card {
@@ -449,11 +489,14 @@ textarea:focus-visible {
   width: 100%;
   max-width: 540px;
   max-height: 88vh;
+  max-height: 88dvh;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border);
   padding: 24px;
   display: flex;
   flex-direction: column;
+  touch-action: auto;
+  overscroll-behavior: contain;
 }
 
 /* Accessibility: reduce motion */

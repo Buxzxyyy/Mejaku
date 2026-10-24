@@ -416,6 +416,13 @@ export const useOrderStore = defineStore('order', () => {
           if (histIdx > -1) {
             orderHistory.value[histIdx] = { ...currentOrder.value }
           }
+
+          // Clear cart items and reset promo after transaction finishes
+          cartItems.value = []
+          appliedDiscount.value = 0
+          promoCode.value = ''
+          promoStatus.value = 'idle'
+          quantity.value = 1
         }
         isCheckingPayment.value = false
         syncWithStorage()
@@ -427,6 +434,13 @@ export const useOrderStore = defineStore('order', () => {
   function setPaymentStatusDirect(status: PaymentStatus) {
     if (currentOrder.value) {
       currentOrder.value.paymentStatus = status
+      if (status === 'paid') {
+        cartItems.value = []
+        appliedDiscount.value = 0
+        promoCode.value = ''
+        promoStatus.value = 'idle'
+        quantity.value = 1
+      }
       syncWithStorage()
     }
   }
