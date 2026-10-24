@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from 'vue'
-import { useRouter, useRoute, RouterLink } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   Star,
   ShoppingBag,
   Check,
-  ArrowLeft,
   X,
   Send,
   Sparkles,
@@ -197,6 +196,17 @@ const selectedTags = ref<string[]>([])
 const reviewSubmittedToast = ref(false)
 const availableRatingTags = ['Rasa Autentik 🌶️', 'Porsi Pas 👍', 'Bumbu Meresap 🤤', 'Penyajian Cepat ⚡', 'Higienis 🧼']
 
+const ratingLabelText = computed(() => {
+  switch (userRating.value) {
+    case 5: return '· Sempurna! ⭐⭐⭐⭐⭐'
+    case 4: return '· Sangat Enak! 👍'
+    case 3: return '· Cukup Bagus 🙂'
+    case 2: return '· Kurang Pas 😐'
+    case 1: return '· Perlu Ditingkatkan 😕'
+    default: return ''
+  }
+})
+
 function toggleRatingTag(tag: string) {
   const idx = selectedTags.value.indexOf(tag)
   if (idx > -1) {
@@ -214,7 +224,7 @@ function submitRating() {
   }
   setTimeout(() => {
     reviewSubmittedToast.value = false
-  }, 4000)
+  }, 4500)
 }
 </script>
 
@@ -236,13 +246,8 @@ function submitRating() {
     </Transition>
 
     <main class="container-app detail-main-content">
-      <!-- Top Row: Back button aligned with Left Column, Breadcrumb on the Right -->
+      <!-- Top Row: Breadcrumb flush left -->
       <div class="top-nav-row">
-        <RouterLink to="/" class="btn-back-menu" aria-label="Kembali ke buku menu">
-          <ArrowLeft :size="16" />
-          <span>Kembali ke Menu</span>
-        </RouterLink>
-
         <AppBreadcrumb :items="breadcrumbItems" class="detail-breadcrumb" />
       </div>
 
@@ -487,78 +492,80 @@ function submitRating() {
 
     <!-- Rating Modal -->
     <Teleport to="body">
-      <div v-if="showRatingModal" class="modal-backdrop" @click.self="showRatingModal = false">
-        <div class="modal-card rating-modal-card" role="dialog" aria-modal="true">
-          <div class="modal-header">
-            <div>
-              <h3 class="font-display modal-title">Beri Rating Hidangan</h3>
-              <p class="modal-sub">{{ currentItem.name }} · {{ currentItem.merchant }}</p>
+      <Transition name="fade">
+        <div v-if="showRatingModal" class="modal-backdrop" @click.self="showRatingModal = false">
+          <div class="rating-modal-card" role="dialog" aria-modal="true" aria-labelledby="rating-modal-title">
+            <div class="modal-header">
+              <div>
+                <h3 id="rating-modal-title" class="font-display modal-title">Beri Rating Hidangan</h3>
+                <p class="modal-sub">{{ currentItem.name }} · {{ currentItem.merchant }}</p>
+              </div>
+              <button type="button" class="close-btn" aria-label="Tutup modal" @click="showRatingModal = false">
+                <X :size="20" />
+              </button>
             </div>
-            <button type="button" class="close-btn" @click="showRatingModal = false">
-              <X :size="20" />
-            </button>
-          </div>
 
-          <div class="modal-body rating-modal-body">
-            <!-- 5 Interactive Stars -->
-            <div class="star-rating-selector">
-              <span class="rating-val-display">{{ userRating }} / 5 Bintang</span>
-              <div class="stars-row">
-                <button
-                  v-for="star in 5"
-                  :key="star"
-                  type="button"
-                  class="star-btn"
-                  @click="userRating = star"
-                >
-                  <Star
-                    :size="32"
-                    :class="{ filled: star <= userRating }"
-                    :fill="star <= userRating ? '#F59E0B' : 'transparent'"
-                    :color="star <= userRating ? '#F59E0B' : '#CBD5E1'"
-                  />
-                </button>
+            <div class="rating-modal-body">
+              <!-- 5 Interactive Stars -->
+              <div class="star-rating-selector">
+                <span class="rating-val-display">{{ userRating }} / 5 Bintang {{ ratingLabelText }}</span>
+                <div class="stars-row">
+                  <button
+                    v-for="star in 5"
+                    :key="star"
+                    type="button"
+                    class="star-btn"
+                    :aria-label="`${star} Bintang`"
+                    @click="userRating = star"
+                  >
+                    <Star
+                      :size="32"
+                      :fill="star <= userRating ? '#F59E0B' : 'transparent'"
+                      :color="star <= userRating ? '#F59E0B' : '#CBD5E1'"
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <!-- Quick Tag Chips -->
+              <div class="rating-tags-group">
+                <label class="rating-label">Apa yang paling kamu sukai?</label>
+                <div class="rating-tags-chips">
+                  <button
+                    v-for="tag in availableRatingTags"
+                    :key="tag"
+                    type="button"
+                    class="rating-tag-chip"
+                    :class="{ active: selectedTags.includes(tag) }"
+                    @click="toggleRatingTag(tag)"
+                  >
+                    <span>{{ tag }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Review Input Textarea -->
+              <div class="rating-input-group">
+                <label for="review-text" class="rating-label">Tulis ulasanmu (opsional):</label>
+                <textarea
+                  id="review-text"
+                  v-model="userReviewText"
+                  placeholder="Bagikan rasa bumbu, kelezatan porsi, atau rekomendasi untuk pelanggan lainnya..."
+                  class="review-textarea"
+                  rows="3"
+                />
               </div>
             </div>
 
-            <!-- Quick Tag Chips -->
-            <div class="rating-tags-group">
-              <label class="rating-label">Apa yang paling kamu sukai?</label>
-              <div class="rating-tags-chips">
-                <button
-                  v-for="tag in availableRatingTags"
-                  :key="tag"
-                  type="button"
-                  class="rating-tag-chip"
-                  :class="{ active: selectedTags.includes(tag) }"
-                  @click="toggleRatingTag(tag)"
-                >
-                  <span>{{ tag }}</span>
-                </button>
-              </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-primary btn-submit-rating" @click="submitRating">
+                <Sparkles :size="16" />
+                <span>Kirim Ulasan & Rating</span>
+              </button>
             </div>
-
-            <!-- Review Input Textarea -->
-            <div class="rating-input-group">
-              <label for="review-text" class="rating-label">Tulis ulasanmu (opsional):</label>
-              <textarea
-                id="review-text"
-                v-model="userReviewText"
-                placeholder="Bagikan rasa bumbu, kelezatan porsi, atau rekomendasi untuk pelanggan lainnya..."
-                class="review-textarea"
-                rows="3"
-              />
-            </div>
-          </div>
-
-          <div class="modal-footer" style="margin-top: 20px;">
-            <button type="button" class="btn-primary" style="width: 100%" @click="submitRating">
-              <Sparkles :size="16" />
-              <span>Kirim Ulasan & Rating</span>
-            </button>
           </div>
         </div>
-      </div>
+      </Transition>
     </Teleport>
 
     <AppFooter />
@@ -578,54 +585,39 @@ function submitRating() {
   flex: 1;
 }
 
-/* Top Navigation Row: Back button aligned flush left */
+/* Top Navigation Row: Breadcrumb flush left */
 .top-nav-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-top: 20px;
   margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.btn-back-menu {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--primary);
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: var(--radius-full);
-  transition: all 0.2s ease;
-}
-
-.btn-back-menu:hover {
-  background-color: var(--primary-soft);
-  transform: translateX(-3px);
-  border-color: var(--primary);
 }
 
 .detail-breadcrumb {
   margin: 0;
 }
 
-/* Two-column layout */
+/* Two-column layout with optimal desktop responsiveness */
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 36px;
+  gap: 32px;
   margin-bottom: 64px;
   align-items: start;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 900px) {
   .detail-grid {
-    grid-template-columns: 1fr 1.15fr;
-    gap: 48px;
+    grid-template-columns: 440px 1fr;
+    gap: 40px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .detail-grid {
+    grid-template-columns: 480px 1fr;
+    gap: 52px;
+    max-width: 1240px;
   }
 }
 
@@ -636,10 +628,10 @@ function submitRating() {
   gap: 16px;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 900px) {
   .gallery-column {
     position: sticky;
-    top: 90px;
+    top: 88px;
   }
 }
 
@@ -647,6 +639,7 @@ function submitRating() {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
+  max-height: 380px;
   overflow: hidden;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
@@ -1119,5 +1112,279 @@ function submitRating() {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 24px;
+}
+
+/* Rating Badge & Interactive Prompt */
+.rating-badge-interactive {
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--surface-warm);
+  border: 1.5px solid var(--border);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.rating-badge-interactive:hover {
+  background-color: #FEF3C7;
+  border-color: #F59E0B;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.rate-prompt-pill {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  background-color: var(--primary-soft);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: 4px;
+  transition: all 0.15s ease;
+}
+
+.rating-badge-interactive:hover .rate-prompt-pill {
+  background-color: #F59E0B;
+  color: #FFFFFF;
+}
+
+/* Modal Backdrop & Rating Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.rating-modal-card {
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22), 0 4px 16px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: modalScaleUp 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.modal-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.close-btn:hover {
+  background-color: var(--surface-warm);
+  color: var(--text-primary);
+}
+
+.rating-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.star-rating-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  background-color: #FFFDF9;
+  border: 1.5px dashed #FDE68A;
+  border-radius: var(--radius-md);
+}
+
+.rating-val-display {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #B45309;
+}
+
+.stars-row {
+  display: flex;
+  gap: 8px;
+}
+
+.star-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  transition: transform 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.star-btn:hover {
+  transform: scale(1.2);
+}
+
+.rating-tags-group,
+.rating-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rating-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rating-tags-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rating-tag-chip {
+  background-color: var(--surface-warm);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rating-tag-chip:hover {
+  border-color: #D6BCAB;
+  color: var(--text-primary);
+}
+
+.rating-tag-chip.active {
+  background-color: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.review-textarea {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background-color: var(--surface);
+  resize: vertical;
+  min-height: 72px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.review-textarea:focus {
+  border-color: var(--primary);
+}
+
+.modal-footer {
+  margin-top: 4px;
+}
+
+.btn-submit-rating {
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 15px;
+}
+
+/* Rating Toast Notification */
+.rating-toast {
+  position: fixed;
+  top: 84px;
+  right: 24px;
+  z-index: 2100;
+  background-color: #1E293B;
+  color: #FFFFFF;
+  border-left: 4px solid #F59E0B;
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 380px;
+}
+
+.toast-star-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: rgba(245, 158, 11, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toast-content strong {
+  font-size: 13px;
+  color: #FFFFFF;
+}
+
+.toast-content span {
+  font-size: 12px;
+  color: #CBD5E1;
+  line-height: 1.4;
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 </style>
