@@ -597,27 +597,19 @@ function submitRating() {
   margin: 0;
 }
 
-/* Two-column layout with optimal desktop responsiveness */
+/* Two-column layout */
 .detail-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 32px;
+  gap: 36px;
   margin-bottom: 64px;
   align-items: start;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 960px) {
   .detail-grid {
-    grid-template-columns: 440px 1fr;
-    gap: 40px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .detail-grid {
-    grid-template-columns: 480px 1fr;
-    gap: 52px;
-    max-width: 1240px;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 48px;
   }
 }
 
@@ -628,10 +620,10 @@ function submitRating() {
   gap: 16px;
 }
 
-@media (min-width: 900px) {
+@media (min-width: 960px) {
   .gallery-column {
     position: sticky;
-    top: 88px;
+    top: 90px;
   }
 }
 
@@ -639,7 +631,6 @@ function submitRating() {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
-  max-height: 380px;
   overflow: hidden;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
