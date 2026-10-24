@@ -291,7 +291,7 @@ function clearSearch() {
         class="floating-cart-bar"
         aria-label="Ringkasan Pesanan"
       >
-        <div class="container-app cart-bar-inner">
+        <div class="cart-bar-inner">
           <div class="cart-bar-left">
             <div class="cart-badge-icon">
               <ShoppingBag :size="20" />
@@ -312,7 +312,8 @@ function clearSearch() {
 
           <div class="cart-bar-right">
             <RouterLink to="/checkout" class="btn-checkout-floating">
-              <span>Lanjut ke Pembayaran</span>
+              <span class="checkout-btn-full">Lanjut ke Pembayaran</span>
+              <span class="checkout-btn-short">Lanjut Bayar</span>
               <ArrowRight :size="18" />
             </RouterLink>
           </div>
@@ -943,6 +944,18 @@ function clearSearch() {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.12);
   gap: 16px;
+  max-width: 1360px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.checkout-btn-full {
+  display: inline;
+}
+
+.checkout-btn-short {
+  display: none;
 }
 
 .cart-bar-left {
@@ -1112,12 +1125,12 @@ function clearSearch() {
     font-size: 13px;
   }
 
-  /* Fix: category nav stays sticky - NO negative margin (breaks sticky!) */
+  /* Fix: category nav does NOT stick on mobile - stays static at top of list so it doesn't block screen */
   .categories-nav-sticky {
-    top: 60px;
+    position: static;
+    top: auto;
     padding: 8px 0;
     margin-bottom: 16px;
-    /* Keep within normal flow - do not use negative margin, it breaks position:sticky */
   }
 
   /* MASALAH 4 FIX: Filter category wrap jadi 2-kolom grid di mobile */
@@ -1164,54 +1177,97 @@ function clearSearch() {
     align-items: flex-start;
   }
 
-  /* MASALAH 5 FIX: Floating cart bar - jangan sampai overlap chatbot button */
+  /* MASALAH 5 FIX: Floating cart bar - mobile compact, never offside, fits screen cleanly */
   .floating-cart-bar {
-    bottom: 84px; /* geser ke atas supaya chatbot button (52px + 24px margin + 8px) tidak tertimpa */
+    bottom: 84px;
     left: 12px;
     right: 12px;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    box-sizing: border-box;
   }
 
   .cart-bar-inner {
-    padding: 12px 14px;
-    gap: 10px;
+    padding: 10px 12px;
+    gap: 8px;
     border-radius: var(--radius-lg);
+    box-sizing: border-box;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .cart-bar-left {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .cart-badge-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  .cart-text-details {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .cart-title-row {
+    flex-wrap: nowrap;
+    gap: 4px;
+    min-width: 0;
   }
 
   .cart-item-name {
-    font-size: 13px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cart-table-tag {
+    white-space: nowrap;
+    font-size: 10px;
+    padding: 1px 5px;
+    flex-shrink: 0;
   }
 
   .cart-subtotal-price {
-    font-size: 12px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   .cart-subtotal-price strong {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .cart-tax-hint {
     display: none;
   }
 
+  .cart-bar-right {
+    flex-shrink: 0;
+  }
+
+  .checkout-btn-full {
+    display: none;
+  }
+
+  .checkout-btn-short {
+    display: inline;
+  }
+
   .btn-checkout-floating {
     font-size: 12px;
-    padding: 10px 12px;
+    padding: 9px 12px;
     white-space: nowrap;
     flex-shrink: 0;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Title row: prevent table tag from being pushed down */
-  .cart-title-row {
-    flex-wrap: nowrap;
-    gap: 6px;
-  }
-
-  .cart-table-tag {
-    white-space: nowrap;
-    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
   }
 }
 </style>

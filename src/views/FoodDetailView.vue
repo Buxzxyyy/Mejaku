@@ -465,10 +465,7 @@ function submitRating() {
               @click="handleAddToCart"
             >
               <ShoppingBag :size="20" />
-              <!-- Desktop: full text with price -->
-              <span class="btn-text-full">Tambahkan ke Pesanan Meja · {{ formatRupiah(currentButtonTotal) }}</span>
-              <!-- Mobile: short text only -->
-              <span class="btn-text-short">Tambahkan ke Pesanan</span>
+              <span>Tambahkan ke Pesanan</span>
             </button>
           </div>
         </div>
@@ -894,101 +891,7 @@ function submitRating() {
   gap: 12px;
 }
 
-@media (max-width: 640px) {
-  .portion-cards-list {
-    grid-template-columns: 1fr;
-  }
-}
 
-/* Dual button text: full on desktop, short on mobile */
-.btn-text-full {
-  display: inline;
-}
-
-.btn-text-short {
-  display: none;
-}
-
-/* Mobile (≤ 640px) Fixes for Realme 8 */
-@media (max-width: 640px) {
-  /* Dual span toggle: hide full text, show short text */
-  .btn-text-full {
-    display: none;
-  }
-  .btn-text-short {
-    display: inline;
-  }
-
-  .detail-main-content {
-    padding-bottom: 48px;
-  }
-
-  .top-nav-row {
-    margin-top: 12px;
-    margin-bottom: 16px;
-  }
-
-  /* Action bar: compact row layout on mobile - stepper left, button right */
-  .order-action-bar {
-    flex-direction: row;
-    gap: 10px;
-    align-items: center;
-    padding-top: 8px;
-  }
-
-  /* QuantityStepper stays compact on left */
-  .order-action-bar > :first-child {
-    flex-shrink: 0;
-  }
-
-  /* "Tambahkan ke Pesanan" button: shorter + compact row on mobile */
-  .btn-add-order {
-    padding: 13px 14px;
-    font-size: 14px;
-    flex: 1;
-    justify-content: center;
-    min-width: 0;
-    white-space: nowrap;
-  }
-
-  /* Food title: clamp to fit smaller screen */
-  .food-title {
-    font-size: clamp(22px, 6vw, 28px);
-  }
-
-  .food-price-value {
-    font-size: 22px;
-  }
-
-  /* Merchant + rating row: smaller on mobile */
-  .merchant-rating-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
-
-  /* Rating badge: compact */
-  .rating-badge-interactive {
-    font-size: 12px;
-    padding: 3px 8px;
-  }
-
-  .rate-prompt-pill {
-    font-size: 10px;
-    padding: 1px 6px;
-  }
-
-  /* Spice chips: slightly smaller on mobile */
-  .spice-chip {
-    padding: 8px 14px;
-    font-size: 13px;
-  }
-
-  /* Recommendations grid: single column on phone */
-  .recommendations-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 .radio-card {
   position: relative;
@@ -1462,6 +1365,87 @@ function submitRating() {
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+/* ─── Mobile Responsive Overrides (≤ 640px) ─── */
+@media (max-width: 640px) {
+  .detail-main-content {
+    padding-bottom: 48px;
+  }
+
+  .top-nav-row {
+    margin-top: 12px;
+    margin-bottom: 16px;
+  }
+
+  .portion-cards-list {
+    grid-template-columns: 1fr;
+  }
+
+  /* Action bar: compact row layout on mobile - stepper left, button right */
+  .order-action-bar {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+    padding-top: 8px;
+    width: 100%;
+  }
+
+  /* QuantityStepper stays compact on left */
+  .order-action-bar > :first-child {
+    flex-shrink: 0;
+  }
+
+  /* "Tambahkan ke Pesanan" button: compact row on mobile, single line */
+  .btn-add-order {
+    padding: 13px 16px !important;
+    font-size: 14px !important;
+    font-weight: 700;
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+    white-space: nowrap;
+    border-radius: var(--radius-full);
+  }
+
+  /* Food title: clamp to fit smaller screen */
+  .food-title {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .food-price-value {
+    font-size: 22px;
+  }
+
+  /* Merchant + rating row: smaller on mobile */
+  .merchant-rating-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  /* Rating badge: compact */
+  .rating-badge-interactive {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+
+  .rate-prompt-pill {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+
+  /* Spice chips: slightly smaller on mobile */
+  .spice-chip {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* Recommendations grid: single column on phone */
+  .recommendations-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
