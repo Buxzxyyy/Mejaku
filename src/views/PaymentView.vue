@@ -82,6 +82,45 @@ const ewalletList = [
 const timeLeft = ref({ hours: '00', minutes: '18', seconds: '42' })
 let timerInterval: any = null
 
+// Dynamic deadline formatting based on actual orderStore deadline
+const formattedDeadline = computed(() => {
+  const d = new Date(orderStore.paymentDeadline || (Date.now() + (18 * 60 + 42) * 1000))
+  const h = String(d.getHours()).padStart(2, '0')
+  const m = String(d.getMinutes()).padStart(2, '0')
+  return `Hari ini, ${h}:${m} WIB`
+})
+
+const formattedDeadlineShort = computed(() => {
+  const d = new Date(orderStore.paymentDeadline || (Date.now() + (18 * 60 + 42) * 1000))
+  const h = String(d.getHours()).padStart(2, '0')
+  const m = String(d.getMinutes()).padStart(2, '0')
+  return `${h}:${m} WIB`
+})
+
+// All items in the order
+const orderItems = computed(() => {
+  if (orderStore.currentOrder?.items && orderStore.currentOrder.items.length > 0) {
+    return orderStore.currentOrder.items
+  }
+  if (orderStore.cartItems.length > 0) {
+    return orderStore.cartItems
+  }
+  return [
+    {
+      cartId: 'default-1',
+      itemId: '1',
+      name: orderStore.currentItemConfig.name,
+      merchant: orderStore.currentItemConfig.merchant,
+      image: orderStore.currentItemConfig.image,
+      quantity: orderStore.quantity,
+      portion: orderStore.currentPortion,
+      spice: orderStore.currentSpice,
+      addons: orderStore.currentAddons,
+      subtotal: orderStore.pricing.subtotal,
+    }
+  ]
+})
+
 function updateCountdown() {
   const diff = orderStore.paymentDeadline - Date.now()
   if (diff <= 0) {
@@ -165,7 +204,7 @@ function handleConfirmManual() {
         <div class="deadline-panel card-surface">
           <div class="deadline-top">
             <span class="deadline-tag">BATAS WAKTU PEMBAYARAN</span>
-            <span class="deadline-target">Hari ini, 13:00 WIB</span>
+            <span class="deadline-target">{{ formattedDeadline }}</span>
           </div>
 
           <div class="deadline-timer-row">
@@ -323,7 +362,7 @@ function handleConfirmManual() {
                     <rect x="168" y="156" width="12" height="24" rx="2" fill="#1E293B" />
                   </svg>
                 </div>
-                <span class="qr-caption">QR berlaku hingga 13:00 WIB</span>
+                <span class="qr-caption">QR berlaku hingga {{ formattedDeadlineShort }}</span>
               </div>
 
               <!-- Right: Price & Payment Code Box -->
@@ -598,7 +637,7 @@ function handleConfirmManual() {
             <!-- Header -->
             <div class="summary-card-header">
               <h2 class="font-display summary-title">Ringkasan Pesanan</h2>
-              <span class="badge-pill badge-pill-primary">1 Menu</span>
+              <span class="badge-pill badge-pill-primary">{{ orderItems.length }} Menu</span>
             </div>
 
             <!-- Order Number & Table Badge -->
@@ -607,18 +646,24 @@ function handleConfirmManual() {
               <span class="badge-pill badge-pill-success">Meja {{ orderStore.table.tableNumber }}</span>
             </div>
 
-            <!-- Product config recap -->
-            <div class="summary-dish-card">
-              <div class="dish-title-row">
-                <span class="dish-merchant">{{ orderStore.currentItemConfig.merchant }}</span>
-                <strong class="dish-name">{{ orderStore.currentItemConfig.name }}</strong>
-              </div>
-              <div class="dish-options-recap">
-                <span>{{ orderStore.quantity }} × {{ orderStore.currentPortion.name }}</span>
-                <span>· {{ orderStore.currentSpice.name }}</span>
-                <span v-if="orderStore.currentAddons.length > 0">
-                  · {{ orderStore.currentAddons.map(a => a.name).join(', ') }}
-                </span>
+            <!-- Product config recap (all items in order) -->
+            <div class="summary-dishes-list">
+              <div
+                v-for="item in orderItems"
+                :key="item.cartId || item.itemId"
+                class="summary-dish-card"
+              >
+                <div class="dish-title-row">
+                  <span class="dish-merchant">{{ item.merchant || 'Warung Bali Dwi' }}</span>
+                  <strong class="dish-name">{{ item.name }}</strong>
+                </div>
+                <div class="dish-options-recap">
+                  <span>{{ item.quantity }} × {{ item.portion?.name || 'Porsi Standar' }}</span>
+                  <span v-if="item.spice"> · {{ item.spice.name }}</span>
+                  <span v-if="item.addons && item.addons.length > 0">
+                    · {{ item.addons.map(a => a.name).join(', ') }}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -1200,12 +1245,19 @@ function handleConfirmManual() {
   font-family: var(--font-sans);
 }
 
+.summary-dishes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
 .summary-dish-card {
   background-color: var(--surface-warm);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .dish-merchant {

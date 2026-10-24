@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import {
   CheckCircle2,
@@ -32,6 +32,41 @@ const breadcrumbItems = [
 ]
 
 const currentPrepStatus = ref<PrepStatus>(orderStore.currentOrder?.prepStatus || 'preparing')
+
+const orderItems = computed(() => {
+  if (orderStore.currentOrder?.items && orderStore.currentOrder.items.length > 0) {
+    return orderStore.currentOrder.items
+  }
+  if (orderStore.cartItems.length > 0) {
+    return orderStore.cartItems
+  }
+  return [
+    {
+      cartId: 'fallback-1',
+      itemId: '1',
+      name: orderStore.currentItemConfig.name,
+      merchant: orderStore.currentItemConfig.merchant,
+      image: orderStore.currentItemConfig.image,
+      quantity: orderStore.quantity,
+      portion: orderStore.currentPortion,
+      spice: orderStore.currentSpice,
+      addons: orderStore.currentAddons,
+      subtotal: orderStore.pricing.subtotal,
+    }
+  ]
+})
+
+const orderItemsFoodNames = computed(() => {
+  return orderItems.value.map((i) => i.name).join(' & ')
+})
+
+const paymentTimeDisplay = computed(() => {
+  if (orderStore.currentOrder?.paymentTimestamp) {
+    return orderStore.currentOrder.paymentTimestamp
+  }
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`
+})
 
 onMounted(() => {
   // Fire celebration confetti!
@@ -108,8 +143,8 @@ function scrollToTimeline() {
             <!-- Vertical Timeline -->
             <OrderTimeline
               :status="currentPrepStatus"
-              :payment-timestamp="orderStore.currentOrder?.paymentTimestamp || '12:40 WIB'"
-              :food-name="orderStore.currentItemConfig.name"
+              :payment-timestamp="paymentTimeDisplay"
+              :food-name="orderItemsFoodNames"
               :table-number="orderStore.table.tableNumber"
               @update:status="handleStatusUpdate"
             />
@@ -193,25 +228,32 @@ function scrollToTimeline() {
           <div class="summary-card card-surface">
             <div class="summary-card-header">
               <h2 class="font-display summary-title">Ringkasan Hidangan</h2>
-              <span class="badge-pill badge-pill-primary">1 Menu</span>
+              <span class="badge-pill badge-pill-primary">{{ orderItems.length }} Menu</span>
             </div>
 
-            <!-- Dish Item Recap with Thumbnail -->
-            <div class="dish-item-recap">
-              <img
-                :src="orderStore.currentItemConfig.image"
-                :alt="orderStore.currentItemConfig.name"
-                class="dish-mini-img"
-              />
-              <div class="dish-mini-meta">
-                <span class="dish-merchant">{{ orderStore.currentItemConfig.merchant }}</span>
-                <strong class="dish-name">{{ orderStore.currentItemConfig.name }}</strong>
-                <span class="dish-sub">
-                  {{ orderStore.quantity }} × {{ orderStore.currentPortion.name }} · {{ orderStore.currentSpice.name }}
-                  <template v-if="orderStore.currentAddons.length > 0">
-                    · {{ orderStore.currentAddons.map(a => a.name).join(', ') }}
-                  </template>
-                </span>
+            <!-- Dish Items List (all ordered items) -->
+            <div class="dish-items-list">
+              <div
+                v-for="item in orderItems"
+                :key="item.cartId || item.itemId"
+                class="dish-item-recap"
+              >
+                <img
+                  :src="item.image || orderStore.currentItemConfig.image"
+                  :alt="item.name"
+                  class="dish-mini-img"
+                />
+                <div class="dish-mini-meta">
+                  <span class="dish-merchant">{{ item.merchant || 'Warung Bali Dwi' }}</span>
+                  <strong class="dish-name">{{ item.name }}</strong>
+                  <span class="dish-sub">
+                    {{ item.quantity }} × {{ item.portion?.name || 'Porsi Standar' }}
+                    <template v-if="item.spice"> · {{ item.spice.name }}</template>
+                    <template v-if="item.addons && item.addons.length > 0">
+                      · {{ item.addons.map(a => a.name).join(', ') }}
+                    </template>
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -221,7 +263,9 @@ function scrollToTimeline() {
             <!-- Card Bottom Method Info -->
             <div class="summary-card-footer">
               <span class="footer-method-label">Metode Pembayaran:</span>
-              <strong class="footer-method-val">QRIS Otomatis</strong>
+              <strong class="footer-method-val">
+                {{ orderStore.currentOrder?.paymentMethod === 'bank_va' ? 'Transfer Bank Virtual Account' : orderStore.currentOrder?.paymentMethod === 'ewallet' ? 'E-Wallet' : 'QRIS Otomatis' }}
+              </strong>
             </div>
           </div>
         </aside>
@@ -486,6 +530,13 @@ function scrollToTimeline() {
   color: var(--text-primary);
 }
 
+.dish-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
 .dish-item-recap {
   display: flex;
   align-items: center;
@@ -494,7 +545,7 @@ function scrollToTimeline() {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .dish-mini-img {
