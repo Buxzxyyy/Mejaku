@@ -591,6 +591,7 @@ watch(showRatingModal, (val) => {
   overflow-x: hidden;
   width: 100%;
   max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .detail-main-content {
@@ -599,6 +600,7 @@ watch(showRatingModal, (val) => {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* Top Navigation Row: Breadcrumb flush left */
@@ -607,10 +609,16 @@ watch(showRatingModal, (val) => {
   margin-bottom: 24px;
   display: flex;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .detail-breadcrumb {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* Two-column layout */
@@ -620,6 +628,9 @@ watch(showRatingModal, (val) => {
   gap: 36px;
   margin-bottom: 64px;
   align-items: start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 @media (min-width: 960px) {
@@ -1401,47 +1412,140 @@ watch(showRatingModal, (val) => {
 @media (max-width: 640px) {
   .detail-main-content {
     padding-bottom: 48px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .top-nav-row {
     margin-top: 12px;
     margin-bottom: 16px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .thumbnails-row {
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .thumb-btn {
+    flex: 0 0 calc((100% - 32px) / 5);
+    width: calc((100% - 32px) / 5);
   }
 
   .portion-cards-list {
     grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .radio-card,
+  .checkbox-card {
+    padding: 12px 14px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .radio-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .radio-info {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .radio-name {
+    font-size: 14px;
+    word-break: break-word;
+  }
+
+  .radio-desc {
+    font-size: 11px;
+  }
+
+  .radio-price {
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 6px;
+  }
+
+  .checkbox-label {
+    gap: 10px;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .addon-name {
+    min-width: 0;
+    flex: 1 1 auto;
+    font-size: 13px;
+    word-break: break-word;
+  }
+
+  .addon-price {
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 6px;
   }
 
   /* Action bar: compact row layout on mobile - stepper left, button right */
   .order-action-bar {
     display: flex;
     flex-direction: row;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     padding-top: 8px;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
-  /* QuantityStepper stays compact on left */
-  .order-action-bar > :first-child {
+  /* QuantityStepper compact sizing on mobile */
+  .order-action-bar :deep(.stepper-wrapper) {
+    height: 44px;
     flex-shrink: 0;
   }
 
-  /* "Tambahkan ke Pesanan" button: compact row on mobile, single line */
+  .order-action-bar :deep(.stepper-btn) {
+    width: 38px;
+    height: 44px;
+  }
+
+  .order-action-bar :deep(.stepper-value) {
+    font-size: 15px;
+    min-width: 28px;
+  }
+
+  /* "Tambahkan ke Pesanan" button: compact row on mobile, fluid flex */
   .btn-add-order {
-    padding: 13px 16px !important;
-    font-size: 14px !important;
+    padding: 12px 14px !important;
+    font-size: 13.5px !important;
     font-weight: 700;
-    flex: 1;
+    flex: 1 1 auto;
     justify-content: center;
     min-width: 0;
     white-space: nowrap;
     border-radius: var(--radius-full);
+    gap: 6px;
+    box-sizing: border-box;
   }
 
   /* Food title: clamp to fit smaller screen */
   .food-title {
     font-size: clamp(22px, 6vw, 28px);
+    word-break: break-word;
   }
 
   .food-price-value {
@@ -1475,6 +1579,34 @@ watch(showRatingModal, (val) => {
   /* Recommendations grid: single column on phone */
   .recommendations-grid {
     grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .order-action-bar {
+    gap: 6px;
+  }
+
+  .order-action-bar :deep(.stepper-wrapper) {
+    height: 40px;
+  }
+
+  .order-action-bar :deep(.stepper-btn) {
+    width: 32px;
+    height: 40px;
+  }
+
+  .order-action-bar :deep(.stepper-value) {
+    font-size: 14px;
+    min-width: 22px;
+  }
+
+  .btn-add-order {
+    padding: 10px 10px !important;
+    font-size: 12px !important;
   }
 }
 </style>

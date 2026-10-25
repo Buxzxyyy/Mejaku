@@ -34,7 +34,6 @@ const searchQuery = ref('')
 const selectedCategory = ref('all')
 const showScanner = ref(false)
 const showScanSuccessToast = ref(false)
-const quickFilter = ref<'all' | 'popular' | 'spicy'>('all')
 
 // Detect table parameter from barcode scan (e.g. ?table=A12 or ?meja=B07)
 onMounted(() => {
@@ -52,20 +51,13 @@ onMounted(() => {
   }
 })
 
-// Filter menu items by category, search text, and quick filter
+// Filter menu items by category and search text
 const filteredMenuItems = computed(() => {
   let list = ALL_MENU_ITEMS
 
   // Category filter
   if (selectedCategory.value !== 'all') {
     list = list.filter((item) => item.category === selectedCategory.value)
-  }
-
-  // Quick filter
-  if (quickFilter.value === 'popular') {
-    list = list.filter((item) => (item.rating && item.rating >= 4.8) || item.badge?.includes('🔥'))
-  } else if (quickFilter.value === 'spicy') {
-    list = list.filter((item) => item.spices && item.spices.some((s) => s.emoji?.includes('🌶️')))
   }
 
   // Search query filter
@@ -172,7 +164,8 @@ function clearSearch() {
             <input
               id="menu-search-input"
               v-model="searchQuery"
-              type="search"
+              type="text"
+              autocomplete="off"
               placeholder="Cari nasi campur, sate, soto, es cendol..."
               class="search-input"
             />
@@ -184,35 +177,6 @@ function clearSearch() {
               @click="clearSearch"
             >
               <X :size="16" />
-            </button>
-          </div>
-
-          <!-- Quick Filter Chips -->
-          <div class="quick-filter-row">
-            <span class="quick-filter-label">Filter Cepat:</span>
-            <button
-              type="button"
-              class="chip-btn"
-              :class="{ active: quickFilter === 'all' }"
-              @click="quickFilter = 'all'"
-            >
-              Semua
-            </button>
-            <button
-              type="button"
-              class="chip-btn"
-              :class="{ active: quickFilter === 'popular' }"
-              @click="quickFilter = 'popular'"
-            >
-              🔥 Paling Laris
-            </button>
-            <button
-              type="button"
-              class="chip-btn"
-              :class="{ active: quickFilter === 'spicy' }"
-              @click="quickFilter = 'spicy'"
-            >
-              🌶️ Bisa Pedas
             </button>
           </div>
         </div>
@@ -980,23 +944,26 @@ function clearSearch() {
   justify-content: center;
   color: #FFFFFF;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .cart-pill-count {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -3px;
+  right: -3px;
   background-color: #FFFFFF;
   color: var(--primary);
   font-size: 11px;
   font-weight: 900;
-  width: 18px;
+  min-width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  padding: 0 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  z-index: 5;
 }
 
 .cart-text-details {
@@ -1201,20 +1168,23 @@ function clearSearch() {
     border-radius: var(--radius-lg);
     box-sizing: border-box;
     width: 100%;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .cart-bar-left {
     min-width: 0;
     flex: 1 1 auto;
     gap: 8px;
-    overflow: hidden;
+    overflow: visible;
+    align-items: center;
   }
 
   .cart-badge-icon {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     flex-shrink: 0;
+    position: relative;
+    overflow: visible;
   }
 
   .cart-text-details {

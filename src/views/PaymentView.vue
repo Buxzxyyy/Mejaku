@@ -97,13 +97,35 @@ const formattedDeadlineShort = computed(() => {
   return `${h}:${m} WIB`
 })
 
+const routeOrderId = computed(() => (route.params.orderId as string) || '')
+
+const activeOrder = computed(() => {
+  if (routeOrderId.value) {
+    const found = orderStore.orderHistory.find((o) => o.id === routeOrderId.value)
+    if (found) return found
+  }
+  if (orderStore.currentOrder) {
+    return orderStore.currentOrder
+  }
+  if (orderStore.orderHistory.length > 0) {
+    return orderStore.orderHistory[0]
+  }
+  return null
+})
+
 // All items in the order
 const orderItems = computed(() => {
+  if (activeOrder.value?.items && activeOrder.value.items.length > 0) {
+    return activeOrder.value.items
+  }
   if (orderStore.currentOrder?.items && orderStore.currentOrder.items.length > 0) {
     return orderStore.currentOrder.items
   }
   if (orderStore.cartItems.length > 0) {
     return orderStore.cartItems
+  }
+  if (orderStore.orderHistory.length > 0 && (orderStore.orderHistory[0]?.items?.length ?? 0) > 0) {
+    return orderStore.orderHistory[0].items!
   }
   return [
     {
@@ -119,6 +141,16 @@ const orderItems = computed(() => {
       subtotal: orderStore.pricing.subtotal,
     }
   ]
+})
+
+const paymentPricing = computed(() => {
+  if (activeOrder.value?.pricing && activeOrder.value.pricing.subtotal > 0) {
+    return activeOrder.value.pricing
+  }
+  if (orderStore.currentOrder?.pricing && orderStore.currentOrder.pricing.subtotal > 0) {
+    return orderStore.currentOrder.pricing
+  }
+  return orderStore.pricing
 })
 
 function updateCountdown() {
@@ -143,6 +175,11 @@ function updateCountdown() {
 }
 
 onMounted(() => {
+  if (routeOrderId.value) {
+    orderStore.loadOrderFromHistory(routeOrderId.value)
+  } else if (!orderStore.currentOrder && orderStore.cartItems.length > 0) {
+    orderStore.createOrder()
+  }
   updateCountdown()
   timerInterval = setInterval(updateCountdown, 1000)
 })
@@ -169,8 +206,16 @@ function handleSelectMethod(method: PaymentMethodType) {
 async function handleCheckPayment() {
   if (orderStore.isCheckingPayment) return
 
+  if (!orderStore.currentOrder) {
+    if (activeOrder.value) {
+      orderStore.currentOrder = activeOrder.value
+    } else if (orderStore.cartItems.length > 0) {
+      orderStore.createOrder()
+    }
+  }
+
   await orderStore.simulatePaymentCheck()
-  const orderId = orderStore.currentOrder?.id || 'MJK-72600-BA'
+  const orderId = orderStore.currentOrder?.id || activeOrder.value?.id || 'MJK-72600-BA'
   router.push(`/orders/${orderId}/confirmation`)
 }
 
@@ -668,7 +713,7 @@ function handleConfirmManual() {
             </div>
 
             <!-- Price Breakdown -->
-            <PriceBreakdown :pricing="orderStore.pricing" mode="payment" />
+            <PriceBreakdown :pricing="paymentPricing" mode="payment" />
 
             <!-- Waiting Notice Box -->
             <div class="waiting-notice-wrap">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 import {
   CheckCircle2,
   QrCode,
@@ -23,19 +23,49 @@ import { formatRupiah } from '@/utils/pricing'
 import type { PrepStatus } from '@/types'
 
 const router = useRouter()
+const route = useRoute()
 const orderStore = useOrderStore()
 
-const breadcrumbItems = [
-  { label: 'Beranda', to: '/' },
-  { label: orderStore.currentItemConfig.merchant, to: '/' },
-  { label: 'Pesanan Berhasil' },
-]
+const routeOrderId = computed(() => (route.params.orderId as string) || '')
 
-const currentPrepStatus = ref<PrepStatus>(orderStore.currentOrder?.prepStatus || 'preparing')
+// Active order matching this confirmation view
+const activeOrder = computed(() => {
+  if (routeOrderId.value) {
+    const found = orderStore.orderHistory.find((o) => o.id === routeOrderId.value)
+    if (found) return found
+  }
+  if (orderStore.currentOrder) {
+    return orderStore.currentOrder
+  }
+  if (orderStore.orderHistory.length > 0) {
+    return orderStore.orderHistory[0]
+  }
+  return null
+})
+
+const breadcrumbItems = computed(() => [
+  { label: 'Beranda', to: '/' },
+  { label: activeOrder.value?.merchant || orderStore.currentItemConfig.merchant, to: '/' },
+  { label: 'Pesanan Berhasil' },
+])
+
+const currentPrepStatus = ref<PrepStatus>(activeOrder.value?.prepStatus || 'preparing')
 
 const orderItems = computed(() => {
+  if (activeOrder.value?.items && activeOrder.value.items.length > 0) {
+    return activeOrder.value.items
+  }
   if (orderStore.currentOrder?.items && orderStore.currentOrder.items.length > 0) {
     return orderStore.currentOrder.items
+  }
+  if (routeOrderId.value) {
+    const historicalOrder = orderStore.orderHistory.find((o) => o.id === routeOrderId.value)
+    if (historicalOrder?.items && historicalOrder.items.length > 0) {
+      return historicalOrder.items
+    }
+  }
+  if (orderStore.orderHistory.length > 0 && (orderStore.orderHistory[0]?.items?.length ?? 0) > 0) {
+    return orderStore.orderHistory[0].items!
   }
   if (orderStore.cartItems.length > 0) {
     return orderStore.cartItems
@@ -56,11 +86,27 @@ const orderItems = computed(() => {
   ]
 })
 
+const confirmedPricing = computed(() => {
+  if (activeOrder.value?.pricing && activeOrder.value.pricing.subtotal > 0) {
+    return activeOrder.value.pricing
+  }
+  if (orderStore.currentOrder?.pricing && orderStore.currentOrder.pricing.subtotal > 0) {
+    return orderStore.currentOrder.pricing
+  }
+  if (orderStore.orderHistory.length > 0 && (orderStore.orderHistory[0]?.pricing?.subtotal ?? 0) > 0) {
+    return orderStore.orderHistory[0].pricing
+  }
+  return orderStore.pricing
+})
+
 const orderItemsFoodNames = computed(() => {
   return orderItems.value.map((i) => i.name).join(' & ')
 })
 
 const paymentTimeDisplay = computed(() => {
+  if (activeOrder.value?.paymentTimestamp) {
+    return activeOrder.value.paymentTimestamp
+  }
   if (orderStore.currentOrder?.paymentTimestamp) {
     return orderStore.currentOrder.paymentTimestamp
   }
@@ -69,6 +115,16 @@ const paymentTimeDisplay = computed(() => {
 })
 
 onMounted(() => {
+  if (routeOrderId.value) {
+    orderStore.loadOrderFromHistory(routeOrderId.value)
+  } else if (!orderStore.currentOrder && orderStore.orderHistory.length > 0) {
+    orderStore.currentOrder = orderStore.orderHistory[0]
+  }
+
+  if (activeOrder.value?.prepStatus) {
+    currentPrepStatus.value = activeOrder.value.prepStatus
+  }
+
   // Fire celebration confetti!
   try {
     confetti({
@@ -258,13 +314,13 @@ function scrollToTimeline() {
             </div>
 
             <!-- Price Breakdown -->
-            <PriceBreakdown :pricing="orderStore.pricing" mode="confirmation" />
+            <PriceBreakdown :pricing="confirmedPricing" mode="confirmation" />
 
             <!-- Card Bottom Method Info -->
             <div class="summary-card-footer">
               <span class="footer-method-label">Metode Pembayaran:</span>
               <strong class="footer-method-val">
-                {{ orderStore.currentOrder?.paymentMethod === 'bank_va' ? 'Transfer Bank Virtual Account' : orderStore.currentOrder?.paymentMethod === 'ewallet' ? 'E-Wallet' : 'QRIS Otomatis' }}
+                {{ (activeOrder?.paymentMethod || orderStore.currentOrder?.paymentMethod) === 'bank_va' ? 'Transfer Bank Virtual Account' : (activeOrder?.paymentMethod || orderStore.currentOrder?.paymentMethod) === 'ewallet' ? 'E-Wallet' : 'QRIS Otomatis' }}
               </strong>
             </div>
           </div>
