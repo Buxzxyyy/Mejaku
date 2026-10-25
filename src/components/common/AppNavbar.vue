@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { QrCode, ShoppingBag, CheckCircle, Receipt, X, ArrowRight } from 'lucide-vue-next'
+import { QrCode, ShoppingBag, CheckCircle, Receipt, X, ArrowRight, RefreshCw } from 'lucide-vue-next'
 import { useOrderStore } from '@/stores/orderStore'
 import { formatRupiah } from '@/utils/pricing'
 import QrScannerModal from './QrScannerModal.vue'
@@ -22,6 +22,15 @@ const orderStore = useOrderStore()
 const showScannerModal = ref(false)
 const showHistoryModal = ref(false)
 
+// Reorder toast state
+const reorderToast = ref<{ show: boolean; orderId: string; itemCount: number }>({
+  show: false,
+  orderId: '',
+  itemCount: 0,
+})
+let reorderToastTimer: ReturnType<typeof setTimeout> | null = null
+const reorderingId = ref<string | null>(null)
+
 // Lock body scrolling when any modal is open
 watch([showHistoryModal, showScannerModal], ([hist, scan]) => {
   if (hist || scan) {
@@ -36,12 +45,41 @@ watch([showHistoryModal, showScannerModal], ([hist, scan]) => {
 onUnmounted(() => {
   document.body.classList.remove('modal-open')
   document.documentElement.classList.remove('modal-open')
+  if (reorderToastTimer) clearTimeout(reorderToastTimer)
 })
 
 function goToOrderStatus(orderId: string) {
   orderStore.loadOrderFromHistory(orderId)
   showHistoryModal.value = false
   router.push(`/orders/${orderId}/confirmation`)
+}
+
+function handleReorder(orderId: string) {
+  if (reorderingId.value === orderId) return
+
+  reorderingId.value = orderId
+  const success = orderStore.reorderFromHistory(orderId)
+
+  if (success) {
+    const itemCount = orderStore.cartItems.length
+    showHistoryModal.value = false
+
+    // Show reorder toast
+    if (reorderToastTimer) clearTimeout(reorderToastTimer)
+    reorderToast.value = { show: true, orderId, itemCount }
+    reorderToastTimer = setTimeout(() => {
+      reorderToast.value.show = false
+    }, 3500)
+
+    // Navigate to checkout after brief delay
+    setTimeout(() => {
+      router.push('/checkout')
+    }, 400)
+  }
+
+  setTimeout(() => {
+    reorderingId.value = null
+  }, 1200)
 }
 </script>
 
@@ -180,20 +218,50 @@ function goToOrderStatus(orderId: string) {
                     <span>Total:</span>
                     <strong>{{ formatRupiah(ord.pricing.total) }}</strong>
                   </div>
-                  <button
-                    type="button"
-                    class="btn-view-hist"
-                    @click="goToOrderStatus(ord.id)"
-                  >
-                    <span>Cek Status</span>
-                    <ArrowRight :size="14" />
-                  </button>
+                  <div class="hist-action-btns">
+                    <!-- Pesan Lagi -->
+                    <button
+                      type="button"
+                      class="btn-reorder"
+                      :class="{ 'is-loading': reorderingId === ord.id }"
+                      :disabled="reorderingId === ord.id"
+                      :aria-label="`Pesan ulang ${ord.orderNumber}`"
+                      @click="handleReorder(ord.id)"
+                    >
+                      <RefreshCw :size="13" />
+                      <span>{{ reorderingId === ord.id ? 'Memproses...' : 'Pesan Lagi' }}</span>
+                    </button>
+                    <!-- Cek Status -->
+                    <button
+                      type="button"
+                      class="btn-view-hist"
+                      @click="goToOrderStatus(ord.id)"
+                    >
+                      <span>Cek Status</span>
+                      <ArrowRight :size="14" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </Teleport>
+
+    <!-- Reorder Toast Notification -->
+    <Teleport to="body">
+      <Transition name="toast-slide">
+        <div v-if="reorderToast.show" class="reorder-toast" role="status" aria-live="polite">
+          <div class="reorder-toast-icon">
+            <ShoppingBag :size="18" />
+          </div>
+          <div class="reorder-toast-body">
+            <strong>Pesanan ditambahkan ke keranjang!</strong>
+            <span>{{ reorderToast.itemCount }} menu dari pesanan sebelumnya siap dipesan.</span>
+          </div>
+        </div>
+      </Transition>
     </Teleport>
   </header>
 </template>
@@ -607,6 +675,108 @@ function goToOrderStatus(orderId: string) {
 .btn-view-hist:hover {
   background: var(--primary-soft);
   border-color: var(--primary);
+}
+
+/* History card action buttons row */
+.hist-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Pesan Lagi button */
+.btn-reorder {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-reorder:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.25);
+}
+
+.btn-reorder:disabled,
+.btn-reorder.is-loading {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Reorder Toast */
+.reorder-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  background-color: #1E293B;
+  color: #FFFFFF;
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  max-width: 380px;
+  pointer-events: none;
+}
+
+.reorder-toast-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(194, 65, 12, 0.2);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #F97316;
+  flex-shrink: 0;
+}
+
+.reorder-toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.reorder-toast-body strong {
+  font-size: 13px;
+  color: #FFFFFF;
+  display: block;
+}
+
+.reorder-toast-body span {
+  font-size: 12px;
+  color: #94A3B8;
+  display: block;
+  line-height: 1.4;
+}
+
+/* Toast slide animation */
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s var(--ease-spring);
+}
+
+.toast-slide-enter-from,
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(16px);
 }
 
 /* ===================== RESPONSIVE ===================== */

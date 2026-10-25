@@ -476,6 +476,58 @@ export const useOrderStore = defineStore('order', () => {
     return found || null
   }
 
+  // Reorder: add all items from a past order back into the cart
+  function reorderFromHistory(orderId: string): boolean {
+    const found = orderHistory.value.find((o) => o.id === orderId)
+    if (!found) return false
+
+    const itemsToReorder = found.items && found.items.length > 0
+      ? found.items
+      : found.item
+        ? [found.item]
+        : []
+
+    if (itemsToReorder.length === 0) return false
+
+    // Reset cart and add all items from the previous order
+    cartItems.value = []
+    currentOrder.value = null
+    appliedDiscount.value = 0
+    promoCode.value = ''
+    promoStatus.value = 'idle'
+    promoMessage.value = ''
+
+    for (const item of itemsToReorder) {
+      const itemId = 'itemId' in item ? (item as CartItem).itemId : ''
+      const slug = 'slug' in item ? (item as CartItem).slug : ''
+      const unitPriceCalc = calculateUnitPrice(
+        item.basePrice || 0,
+        item.portion,
+        item.addons || []
+      )
+      const newCartItem: CartItem = {
+        cartId: `cart-reorder-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        itemId,
+        slug,
+        name: item.name,
+        merchant: item.merchant || found.merchant,
+        image: item.image || '',
+        basePrice: item.basePrice || 0,
+        portion: { ...item.portion },
+        spice: { ...item.spice },
+        addons: [...(item.addons || [])],
+        quantity: item.quantity,
+        unitPrice: unitPriceCalc,
+        subtotal: unitPriceCalc * item.quantity,
+        customerNote: '',
+      }
+      cartItems.value.push(newCartItem)
+    }
+
+    syncWithStorage()
+    return true
+  }
+
   // Storage synchronization
   function syncWithStorage() {
     try {
@@ -579,5 +631,6 @@ export const useOrderStore = defineStore('order', () => {
     setPrepStatus,
     resetToDefault,
     loadOrderFromHistory,
+    reorderFromHistory,
   }
 })

@@ -10,6 +10,7 @@ import {
   Share2,
   Sparkles,
   Flame,
+  RefreshCw,
 } from 'lucide-vue-next'
 import confetti from 'canvas-confetti'
 import AppNavbar from '@/components/common/AppNavbar.vue'
@@ -153,6 +154,15 @@ function scrollToTimeline() {
     }, 1500)
   }
 }
+
+function handleReorderThisOrder() {
+  const ord = activeOrder.value
+  if (!ord) return
+  const success = orderStore.reorderFromHistory(ord.id)
+  if (success) {
+    router.push('/checkout')
+  }
+}
 </script>
 
 <template>
@@ -272,6 +282,15 @@ function scrollToTimeline() {
             >
               <Compass :size="18" />
               <span>Lacak Pesanan Langsung</span>
+            </button>
+
+            <button
+              type="button"
+              class="btn-outline btn-reorder-confirm"
+              @click="handleReorderThisOrder"
+            >
+              <RefreshCw :size="18" />
+              <span>Pesan Lagi Menu Ini</span>
             </button>
 
             <RouterLink to="/" class="btn-outline btn-back-home">
@@ -565,6 +584,30 @@ function scrollToTimeline() {
   width: 100%;
   padding: 14px;
   font-size: 15px;
+}
+
+.btn-reorder-confirm {
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  background-color: var(--primary-soft);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.btn-reorder-confirm:hover {
+  background-color: var(--primary);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.25);
+  transform: translateY(-1px);
 }
 
 .summary-card {
