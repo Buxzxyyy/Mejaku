@@ -146,8 +146,8 @@ watch(
 )
 
 const breadcrumbItems = computed(() => [
-  { label: 'Daftar Menu', to: '/' },
-  { label: currentItem.value.merchant, to: '/' },
+  { label: 'Beranda', to: '/' },
+  { label: currentItem.value.merchant, to: '/menu' },
   { label: currentItem.value.name },
 ])
 

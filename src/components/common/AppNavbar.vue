@@ -919,4 +919,73 @@ function handleReorder(orderId: string) {
     gap: 5px;
   }
 }
+
+/* History Modal Mobile Optimization (≤ 540px) */
+@media (max-width: 540px) {
+  .history-modal-card {
+    max-width: 100%;
+    width: calc(100vw - 24px);
+    margin: 12px;
+  }
+
+  .history-card {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .history-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding-top: 12px;
+  }
+
+  .hist-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .hist-total span {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .hist-total strong {
+    font-size: 16px;
+    color: var(--primary);
+  }
+
+  .hist-action-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .btn-reorder,
+  .btn-view-hist {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 12px;
+    font-size: 12px;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 360px) {
+  .hist-action-btns {
+    gap: 6px;
+  }
+
+  .btn-reorder,
+  .btn-view-hist {
+    padding: 8px 6px;
+    font-size: 11px;
+    gap: 4px;
+  }
+}
 </style>
