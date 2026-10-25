@@ -1,0 +1,226 @@
+<svg width="834" height="1520" viewBox="0 0 834 1520" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Lobster+Two:wght@700&amp;family=Urbanist:wght@400;500;600;700;800&amp;display=swap');
+      .heading { font-family: 'Lobster Two', serif; font-weight: 700; }
+      .body { font-family: 'Urbanist', -apple-system, sans-serif; }
+    </style>
+    <clipPath id="tab-card-img-1"><rect width="224" height="150" rx="12"/></clipPath>
+    <clipPath id="tab-card-img-2"><rect width="224" height="150" rx="12"/></clipPath>
+    <clipPath id="tab-card-img-3"><rect width="224" height="150" rx="12"/></clipPath>
+    <clipPath id="tab-card-img-4"><rect width="224" height="150" rx="12"/></clipPath>
+    <clipPath id="tab-card-img-5"><rect width="224" height="150" rx="12"/></clipPath>
+    <clipPath id="tab-card-img-6"><rect width="224" height="150" rx="12"/></clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="834" height="1520" fill="#FAF6F0"/>
+
+  <!-- ==================== 1. NAVBAR (TABLET) ==================== -->
+  <rect width="834" height="72" fill="#FAF6F0"/>
+  <line x1="0" y1="72" x2="834" y2="72" stroke="#E2D4C9" stroke-width="1"/>
+
+  <!-- Logo -->
+  <g transform="translate(32, 16)">
+    <rect width="40" height="40" rx="12" fill="#C2410C"/>
+    <text x="20" y="27" class="heading" font-size="24" fill="#FFFFFF" text-anchor="middle">M</text>
+    <text x="52" y="29" class="heading" font-size="28" fill="#C2410C">MejaKu</text>
+  </g>
+
+  <!-- Tablet Nav Actions -->
+  <g transform="translate(530, 18)">
+    <rect width="140" height="36" rx="18" fill="#ECFDF3" stroke="#15803D" stroke-opacity="0.25"/>
+    <circle cx="16" cy="18" r="4" fill="#22C55E"/>
+    <text x="28" y="22" class="body" font-size="12" font-weight="700" fill="#15803D">Meja A12 · Lt 2</text>
+    
+    <g transform="translate(150, 0)">
+      <rect width="36" height="36" rx="18" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <path d="M12 10h12v16l-3-2-3 2-3-2-3 2V10z" fill="none" stroke="#64748B" stroke-width="1.8"/>
+    </g>
+
+    <g transform="translate(196, 0)">
+      <rect width="76" height="36" rx="18" fill="#C2410C"/>
+      <path d="M16 13h16l-2 14H18L16 13z" fill="none" stroke="#FFFFFF" stroke-width="1.8"/>
+      <circle cx="56" cy="18" r="8" fill="#FFFFFF"/>
+      <text x="56" y="22" class="body" font-size="11" font-weight="800" fill="#C2410C" text-anchor="middle">2</text>
+    </g>
+  </g>
+
+  <!-- ==================== 2. TABLET HEADER & SEARCH ==================== -->
+  <g transform="translate(32, 100)">
+    <text x="0" y="16" class="body" font-size="11" font-weight="800" fill="#C2410C" letter-spacing="1">WARUNG BALI DWI</text>
+    <text x="0" y="52" class="heading" font-size="36" fill="#1E293B">Daftar Menu Spesial</text>
+    <text x="0" y="78" class="body" font-size="14" fill="#64748B">Racik porsi dan kepedasan hidangan otentik Bali favorit Anda.</text>
+
+    <!-- Search Input -->
+    <g transform="translate(480, 28)">
+      <rect width="290" height="46" rx="12" fill="#FFFFFF" stroke="#E2D4C9" stroke-width="1.5"/>
+      <circle cx="20" cy="23" r="6" stroke="#8190A6" stroke-width="1.8" fill="none"/>
+      <line x1="24" y1="27" x2="30" y2="33" stroke="#8190A6" stroke-width="1.8" stroke-linecap="round"/>
+      <text x="36" y="27" class="body" font-size="13" fill="#8190A6">Cari sate, nasi campur...</text>
+    </g>
+  </g>
+
+  <!-- ==================== 3. CATEGORY PILLS (TABLET) ==================== -->
+  <g transform="translate(32, 210)">
+    <rect x="0" y="0" width="100" height="38" rx="19" fill="#C2410C"/>
+    <text x="50" y="24" class="body" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">Semua (24)</text>
+
+    <rect x="110" y="0" width="135" height="38" rx="19" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <text x="177" y="24" class="body" font-size="13" font-weight="600" fill="#1E293B" text-anchor="middle">Makanan Utama</text>
+
+    <rect x="255" y="0" width="130" height="38" rx="19" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <text x="320" y="24" class="body" font-size="13" font-weight="600" fill="#1E293B" text-anchor="middle">Sate &amp; Bakaran</text>
+
+    <rect x="395" y="0" width="115" height="38" rx="19" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <text x="452" y="24" class="body" font-size="13" font-weight="600" fill="#1E293B" text-anchor="middle">Kuah &amp; Sup</text>
+
+    <rect x="520" y="0" width="130" height="38" rx="19" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <text x="585" y="24" class="body" font-size="13" font-weight="600" fill="#1E293B" text-anchor="middle">Minuman Segar</text>
+  </g>
+
+  <!-- ==================== 4. 3-COLUMN MENU GRID (770px content) ==================== -->
+  
+  <!-- ROW 1 (Y = 276) -->
+  <!-- Col 1: Sate Ayam -->
+  <g transform="translate(32, 276)">
+    <rect width="246" height="370" rx="16" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(11, 11)">
+      <g clip-path="url(#tab-card-img-1)">
+        <image href="https://images.unsplash.com/photo-1529563021893-cc83c992d75d?auto=format&amp;fit=crop&amp;w=500&amp;q=80" width="224" height="150" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <rect x="8" y="8" width="90" height="22" rx="5" fill="#C2410C"/>
+      <text x="53" y="23" class="body" font-size="10" font-weight="800" fill="#FFFFFF" text-anchor="middle">WAJIB COBA 🔥</text>
+    </g>
+    <text x="14" y="190" class="body" font-size="11" font-weight="700" fill="#8190A6">WARUNG BALI DWI</text>
+    <text x="14" y="212" class="body" font-size="16" font-weight="700" fill="#1E293B">Sate Ayam Bali</text>
+    <text x="14" y="234" class="body" font-size="12" fill="#64748B">10 tusuk empuk bumbu rempah...</text>
+    <text x="14" y="264" class="body" font-size="12" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(184)</tspan></text>
+    <line x1="14" y1="284" x2="232" y2="284" stroke="#E2D4C9" stroke-width="1"/>
+    <text x="14" y="322" class="body" font-size="11" fill="#8190A6">Mulai dari</text>
+    <text x="14" y="342" class="body" font-size="18" font-weight="800" fill="#C2410C">Rp 32.000</text>
+    <rect x="194" y="312" width="38" height="38" rx="19" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="213" y="336" class="body" font-size="18" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Col 2: Nasi Campur -->
+  <g transform="translate(294, 276)">
+    <rect width="246" height="370" rx="16" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(11, 11)">
+      <g clip-path="url(#tab-card-img-2)">
+        <image href="https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&amp;fit=crop&amp;w=500&amp;q=80" width="224" height="150" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <rect x="8" y="8" width="80" height="22" rx="5" fill="#F97316"/>
+      <text x="48" y="23" class="body" font-size="10" font-weight="800" fill="#FFFFFF" text-anchor="middle">BESTSELLER</text>
+    </g>
+    <text x="14" y="190" class="body" font-size="11" font-weight="700" fill="#8190A6">WARUNG BALI DWI</text>
+    <text x="14" y="212" class="body" font-size="16" font-weight="700" fill="#1E293B">Nasi Campur Bali</text>
+    <text x="14" y="234" class="body" font-size="12" fill="#64748B">Ayam suwir, sate lilit...</text>
+    <text x="14" y="264" class="body" font-size="12" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(240)</tspan></text>
+    <line x1="14" y1="284" x2="232" y2="284" stroke="#E2D4C9" stroke-width="1"/>
+    <text x="14" y="322" class="body" font-size="11" fill="#8190A6">Mulai dari</text>
+    <text x="14" y="342" class="body" font-size="18" font-weight="800" fill="#C2410C">Rp 58.000</text>
+    <rect x="194" y="312" width="38" height="38" rx="19" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="213" y="336" class="body" font-size="18" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Col 3: Bebek Betutu -->
+  <g transform="translate(556, 276)">
+    <rect width="246" height="370" rx="16" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(11, 11)">
+      <g clip-path="url(#tab-card-img-3)">
+        <image href="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&amp;fit=crop&amp;w=500&amp;q=80" width="224" height="150" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+    <text x="14" y="190" class="body" font-size="11" font-weight="700" fill="#8190A6">WARUNG BALI DWI</text>
+    <text x="14" y="212" class="body" font-size="16" font-weight="700" fill="#1E293B">Bebek Betutu</text>
+    <text x="14" y="234" class="body" font-size="12" fill="#64748B">Ungkep 8 jam rempah jangkep...</text>
+    <text x="14" y="264" class="body" font-size="12" font-weight="700" fill="#F59E0B">★ 4.8 <tspan fill="#8190A6">(112)</tspan></text>
+    <line x1="14" y1="284" x2="232" y2="284" stroke="#E2D4C9" stroke-width="1"/>
+    <text x="14" y="322" class="body" font-size="11" fill="#8190A6">Mulai dari</text>
+    <text x="14" y="342" class="body" font-size="18" font-weight="800" fill="#C2410C">Rp 68.000</text>
+    <rect x="194" y="312" width="38" height="38" rx="19" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="213" y="336" class="body" font-size="18" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- ROW 2 (Y = 676) -->
+  <!-- Col 1: Es Cendol -->
+  <g transform="translate(32, 676)">
+    <rect width="246" height="370" rx="16" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(11, 11)">
+      <g clip-path="url(#tab-card-img-4)">
+        <image href="https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&amp;fit=crop&amp;w=500&amp;q=80" width="224" height="150" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+    <text x="14" y="190" class="body" font-size="11" font-weight="700" fill="#8190A6">WARUNG BALI DWI</text>
+    <text x="14" y="212" class="body" font-size="16" font-weight="700" fill="#1E293B">Es Cendol Durian</text>
+    <text x="14" y="234" class="body" font-size="12" fill="#64748B">Santan murni &amp; gula aren...</text>
+    <text x="14" y="264" class="body" font-size="12" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(98)</tspan></text>
+    <line x1="14" y1="284" x2="232" y2="284" stroke="#E2D4C9" stroke-width="1"/>
+    <text x="14" y="322" class="body" font-size="11" fill="#8190A6">Mulai dari</text>
+    <text x="14" y="342" class="body" font-size="18" font-weight="800" fill="#C2410C">Rp 22.000</text>
+    <rect x="194" y="312" width="38" height="38" rx="19" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="213" y="336" class="body" font-size="18" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Col 2: Soto Ayam -->
+  <g transform="translate(294, 676)">
+    <rect width="246" height="370" rx="16" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(11, 11)">
+      <g clip-path="url(#tab-card-img-5)">
+        <image href="https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&amp;fit=crop&amp;w=500&amp;q=80" width="224" height="150" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+    <text x="14" y="190" class="body" font-size="11" font-weight="700" fill="#8190A6">WARUNG BALI DWI</text>
+    <text x="14" y="212" class="body" font-size="16" font-weight="700" fill="#1E293B">Soto Ayam Bali</text>
+    <text x="14" y="234" class="body" font-size="12" fill="#64748B">Kuah kaldu kuning rempah...</text>
+    <text x="14" y="264" class="body" font-size="12" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(195)</tspan></text>
+    <line x1="14" y1="284" x2="232" y2="284" stroke="#E2D4C9" stroke-width="1"/>
+    <text x="14" y="322" class="body" font-size="11" fill="#8190A6">Mulai dari</text>
+    <text x="14" y="342" class="body" font-size="18" font-weight="800" fill="#C2410C">Rp 38.000</text>
+    <rect x="194" y="312" width="38" height="38" rx="19" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="213" y="336" class="body" font-size="18" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Col 3: Es Kelapa Jeruk -->
+  <g transform="translate(556, 676)">
+    <rect width="246" height="370" rx="16" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(11, 11)">
+      <g clip-path="url(#tab-card-img-6)">
+        <image href="https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&amp;fit=crop&amp;w=500&amp;q=80" width="224" height="150" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+    <text x="14" y="190" class="body" font-size="11" font-weight="700" fill="#8190A6">WARUNG BALI DWI</text>
+    <text x="14" y="212" class="body" font-size="16" font-weight="700" fill="#1E293B">Es Kelapa Jeruk</text>
+    <text x="14" y="234" class="body" font-size="12" fill="#64748B">Kelapa muda perasan jeruk...</text>
+    <text x="14" y="264" class="body" font-size="12" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(140)</tspan></text>
+    <line x1="14" y1="284" x2="232" y2="284" stroke="#E2D4C9" stroke-width="1"/>
+    <text x="14" y="322" class="body" font-size="11" fill="#8190A6">Mulai dari</text>
+    <text x="14" y="342" class="body" font-size="18" font-weight="800" fill="#C2410C">Rp 18.000</text>
+    <rect x="194" y="312" width="38" height="38" rx="19" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="213" y="336" class="body" font-size="18" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- ==================== 5. CALLOUT BANNER TABLET ==================== -->
+  <g transform="translate(32, 1086)">
+    <rect width="770" height="120" rx="16" fill="#F5ECE1" stroke="#E2D4C9"/>
+    <rect x="20" y="20" width="80" height="80" rx="12" fill="#C2410C"/>
+    <text x="60" y="68" class="heading" font-size="30" fill="#FFFFFF" text-anchor="middle">QR</text>
+    <text x="120" y="52" class="heading" font-size="22" fill="#1E293B">Butuh bantuan pramusaji ke Meja A12?</text>
+    <text x="120" y="78" class="body" font-size="14" fill="#64748B">Pramusaji kami siap melayani pesanan Anda langsung ke meja.</text>
+    <rect x="600" y="38" width="150" height="44" rx="22" fill="#C2410C"/>
+    <text x="675" y="65" class="body" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">Panggil Pramusaji</text>
+  </g>
+
+  <!-- ==================== 6. FOOTER TABLET ==================== -->
+  <g transform="translate(0, 1260)">
+    <rect width="834" height="260" fill="#1E293B"/>
+    <g transform="translate(32, 40)">
+      <text x="0" y="28" class="heading" font-size="28" fill="#FFFFFF">MejaKu</text>
+      <text x="0" y="56" class="body" font-size="13" fill="#94A3B8">Pemesanan makanan digital pujasera berbasis kode QR meja.</text>
+      <line x1="0" y1="140" x2="770" y2="140" stroke="#334155" stroke-width="1"/>
+      <text x="0" y="175" class="body" font-size="12" fill="#64748B">© 2026 MejaKu Digital Pujasera. Hak Cipta Dilindungi.</text>
+      <text x="770" y="175" class="body" font-size="12" fill="#64748B" text-anchor="end">Desain Sistem &amp; UI Tablet Figma</text>
+    </g>
+  </g>
+</svg>

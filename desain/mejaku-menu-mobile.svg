@@ -1,0 +1,231 @@
+<svg width="390" height="1520" viewBox="0 0 390 1520" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Lobster+Two:wght@700&amp;family=Urbanist:wght@400;500;600;700;800&amp;display=swap');
+      .heading { font-family: 'Lobster Two', serif; font-weight: 700; }
+      .body { font-family: 'Urbanist', -apple-system, sans-serif; }
+    </style>
+    <filter id="bottom-bar-shadow" x="0" y="-4" width="390" height="90" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="-4" stdDeviation="12" flood-color="#1E293B" flood-opacity="0.08"/>
+    </filter>
+    <clipPath id="mobile-card-img-1"><rect width="168" height="116" rx="10"/></clipPath>
+    <clipPath id="mobile-card-img-2"><rect width="168" height="116" rx="10"/></clipPath>
+    <clipPath id="mobile-card-img-3"><rect width="168" height="116" rx="10"/></clipPath>
+    <clipPath id="mobile-card-img-4"><rect width="168" height="116" rx="10"/></clipPath>
+    <clipPath id="mobile-card-img-5"><rect width="168" height="116" rx="10"/></clipPath>
+    <clipPath id="mobile-card-img-6"><rect width="168" height="116" rx="10"/></clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="1520" fill="#FAF6F0"/>
+
+  <!-- ==================== 1. MOBILE TOP STATUS & NAVBAR ==================== -->
+  <rect width="390" height="60" fill="#FAF6F0"/>
+  <line x1="0" y1="60" x2="390" y2="60" stroke="#E2D4C9" stroke-width="1"/>
+
+  <!-- Logo Icon -->
+  <g transform="translate(16, 12)">
+    <rect width="36" height="36" rx="10" fill="#C2410C"/>
+    <text x="18" y="24" class="heading" font-size="20" fill="#FFFFFF" text-anchor="middle">M</text>
+  </g>
+
+  <!-- Right Actions -->
+  <g transform="translate(195, 13)">
+    <!-- Table Verified Pill -->
+    <rect width="105" height="34" rx="17" fill="#ECFDF3" stroke="#15803D" stroke-opacity="0.25"/>
+    <circle cx="15" cy="17" r="4" fill="#22C55E"/>
+    <text x="26" y="21" class="body" font-size="12" font-weight="700" fill="#15803D">Meja A12</text>
+    
+    <!-- Receipt Icon -->
+    <g transform="translate(112, 0)">
+      <rect width="34" height="34" rx="17" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <path d="M11 9h12v16l-3-2-3 2-3-2-3 2V9z" fill="none" stroke="#64748B" stroke-width="1.6"/>
+      <line x1="14" y1="13" x2="20" y2="13" stroke="#64748B" stroke-width="1.6" stroke-linecap="round"/>
+    </g>
+
+    <!-- Cart Icon with Badge -->
+    <g transform="translate(152, 0)">
+      <rect width="34" height="34" rx="17" fill="#C2410C"/>
+      <path d="M10 11h14l-1.5 12H11.5L10 11z" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+      <path d="M14 11V9.5a3 3 0 0 1 6 0v1.5" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+      <circle cx="28" cy="7" r="6.5" fill="#FFFFFF"/>
+      <text x="28" y="10.5" class="body" font-size="9" font-weight="800" fill="#C2410C" text-anchor="middle">2</text>
+    </g>
+  </g>
+
+  <!-- ==================== 2. MERCHANT & SEARCH BAR ==================== -->
+  <g transform="translate(16, 76)">
+    <!-- Merchant tag -->
+    <text x="0" y="14" class="body" font-size="11" font-weight="800" fill="#C2410C" letter-spacing="1">WARUNG BALI DWI</text>
+    <text x="0" y="44" class="heading" font-size="28" fill="#1E293B">Pilih Menu Spesial</text>
+
+    <!-- Search Input -->
+    <g transform="translate(0, 58)">
+      <rect width="358" height="44" rx="12" fill="#FFFFFF" stroke="#E2D4C9" stroke-width="1.5"/>
+      <circle cx="22" cy="22" r="6" stroke="#8190A6" stroke-width="1.8" fill="none"/>
+      <line x1="26" y1="26" x2="32" y2="32" stroke="#8190A6" stroke-width="1.8" stroke-linecap="round"/>
+      <text x="38" y="26" class="body" font-size="13" fill="#8190A6">Cari sate, nasi campur, bebek...</text>
+    </g>
+  </g>
+
+  <!-- ==================== 3. CATEGORY PILLS (HORIZONTAL) ==================== -->
+  <g transform="translate(16, 192)">
+    <rect x="0" y="0" width="88" height="34" rx="17" fill="#C2410C"/>
+    <text x="44" y="21" class="body" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">Semua (24)</text>
+
+    <rect x="94" y="0" width="115" height="34" rx="17" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <text x="151" y="21" class="body" font-size="12" font-weight="600" fill="#1E293B" text-anchor="middle">Makanan Utama</text>
+
+    <rect x="215" y="0" width="105" height="34" rx="17" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <text x="267" y="21" class="body" font-size="12" font-weight="600" fill="#1E293B" text-anchor="middle">Sate &amp; Bakaran</text>
+
+    <rect x="326" y="0" width="50" height="34" rx="17" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <text x="351" y="21" class="body" font-size="12" font-weight="600" fill="#1E293B" text-anchor="middle">Sup...</text>
+  </g>
+
+  <!-- ==================== 4. 2-COLUMN MENU GRID ==================== -->
+  
+  <!-- ROW 1 (Y = 242) -->
+  <!-- Col 1: Sate Ayam -->
+  <g transform="translate(16, 242)">
+    <rect width="173" height="280" rx="14" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(3, 3)">
+      <g clip-path="url(#mobile-card-img-1)">
+        <image href="https://images.unsplash.com/photo-1529563021893-cc83c992d75d?auto=format&amp;fit=crop&amp;w=400&amp;q=80" width="168" height="116" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <rect x="6" y="6" width="76" height="18" rx="4" fill="#C2410C"/>
+      <text x="44" y="19" class="body" font-size="9" font-weight="800" fill="#FFFFFF" text-anchor="middle">WAJIB COBA</text>
+    </g>
+    <text x="10" y="142" class="body" font-size="14" font-weight="700" fill="#1E293B">Sate Ayam Bali</text>
+    <text x="10" y="160" class="body" font-size="11" fill="#64748B">10 tusuk bumbu rempah...</text>
+    <text x="10" y="184" class="body" font-size="11" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(184)</tspan></text>
+    <text x="10" y="235" class="body" font-size="10" fill="#8190A6">Mulai dari</text>
+    <text x="10" y="254" class="body" font-size="16" font-weight="800" fill="#C2410C">Rp 32.000</text>
+    <rect x="133" y="233" width="30" height="30" rx="15" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="148" y="252" class="body" font-size="16" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Col 2: Nasi Campur -->
+  <g transform="translate(201, 242)">
+    <rect width="173" height="280" rx="14" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(3, 3)">
+      <g clip-path="url(#mobile-card-img-2)">
+        <image href="https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&amp;fit=crop&amp;w=400&amp;q=80" width="168" height="116" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <rect x="6" y="6" width="70" height="18" rx="4" fill="#F97316"/>
+      <text x="41" y="19" class="body" font-size="9" font-weight="800" fill="#FFFFFF" text-anchor="middle">BESTSELLER</text>
+    </g>
+    <text x="10" y="142" class="body" font-size="14" font-weight="700" fill="#1E293B">Nasi Campur Bali</text>
+    <text x="10" y="160" class="body" font-size="11" fill="#64748B">Ayam suwir, sate lilit...</text>
+    <text x="10" y="184" class="body" font-size="11" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(240)</tspan></text>
+    <text x="10" y="235" class="body" font-size="10" fill="#8190A6">Mulai dari</text>
+    <text x="10" y="254" class="body" font-size="16" font-weight="800" fill="#C2410C">Rp 58.000</text>
+    <rect x="133" y="233" width="30" height="30" rx="15" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="148" y="252" class="body" font-size="16" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- ROW 2 (Y = 534) -->
+  <!-- Col 1: Bebek Betutu -->
+  <g transform="translate(16, 534)">
+    <rect width="173" height="280" rx="14" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(3, 3)">
+      <g clip-path="url(#mobile-card-img-3)">
+        <image href="https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&amp;fit=crop&amp;w=400&amp;q=80" width="168" height="116" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+    <text x="10" y="142" class="body" font-size="14" font-weight="700" fill="#1E293B">Bebek Betutu</text>
+    <text x="10" y="160" class="body" font-size="11" fill="#64748B">Ungkep 8 jam empuk...</text>
+    <text x="10" y="184" class="body" font-size="11" font-weight="700" fill="#F59E0B">★ 4.8 <tspan fill="#8190A6">(112)</tspan></text>
+    <text x="10" y="235" class="body" font-size="10" fill="#8190A6">Mulai dari</text>
+    <text x="10" y="254" class="body" font-size="16" font-weight="800" fill="#C2410C">Rp 68.000</text>
+    <rect x="133" y="233" width="30" height="30" rx="15" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="148" y="252" class="body" font-size="16" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Col 2: Es Cendol -->
+  <g transform="translate(201, 534)">
+    <rect width="173" height="280" rx="14" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(3, 3)">
+      <g clip-path="url(#mobile-card-img-4)">
+        <image href="https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&amp;fit=crop&amp;w=400&amp;q=80" width="168" height="116" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <rect x="6" y="6" width="60" height="18" rx="4" fill="#15803D"/>
+      <text x="36" y="19" class="body" font-size="9" font-weight="800" fill="#FFFFFF" text-anchor="middle">SEGAR</text>
+    </g>
+    <text x="10" y="142" class="body" font-size="14" font-weight="700" fill="#1E293B">Es Cendol Durian</text>
+    <text x="10" y="160" class="body" font-size="11" fill="#64748B">Gula aren kental murni...</text>
+    <text x="10" y="184" class="body" font-size="11" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(98)</tspan></text>
+    <text x="10" y="235" class="body" font-size="10" fill="#8190A6">Mulai dari</text>
+    <text x="10" y="254" class="body" font-size="16" font-weight="800" fill="#C2410C">Rp 22.000</text>
+    <rect x="133" y="233" width="30" height="30" rx="15" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="148" y="252" class="body" font-size="16" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- ROW 3 (Y = 826) -->
+  <!-- Col 1: Soto Ayam -->
+  <g transform="translate(16, 826)">
+    <rect width="173" height="280" rx="14" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(3, 3)">
+      <g clip-path="url(#mobile-card-img-5)">
+        <image href="https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&amp;fit=crop&amp;w=400&amp;q=80" width="168" height="116" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+    <text x="10" y="142" class="body" font-size="14" font-weight="700" fill="#1E293B">Soto Ayam Bali</text>
+    <text x="10" y="160" class="body" font-size="11" fill="#64748B">Kuah kuning rempah...</text>
+    <text x="10" y="184" class="body" font-size="11" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(195)</tspan></text>
+    <text x="10" y="235" class="body" font-size="10" fill="#8190A6">Mulai dari</text>
+    <text x="10" y="254" class="body" font-size="16" font-weight="800" fill="#C2410C">Rp 38.000</text>
+    <rect x="133" y="233" width="30" height="30" rx="15" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="148" y="252" class="body" font-size="16" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- Col 2: Es Kelapa Jeruk -->
+  <g transform="translate(201, 826)">
+    <rect width="173" height="280" rx="14" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <g transform="translate(3, 3)">
+      <g clip-path="url(#mobile-card-img-6)">
+        <image href="https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&amp;fit=crop&amp;w=400&amp;q=80" width="168" height="116" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+    <text x="10" y="142" class="body" font-size="14" font-weight="700" fill="#1E293B">Es Kelapa Jeruk</text>
+    <text x="10" y="160" class="body" font-size="11" fill="#64748B">Air kelapa &amp; perasan jeruk...</text>
+    <text x="10" y="184" class="body" font-size="11" font-weight="700" fill="#F59E0B">★ 4.9 <tspan fill="#8190A6">(140)</tspan></text>
+    <text x="10" y="235" class="body" font-size="10" fill="#8190A6">Mulai dari</text>
+    <text x="10" y="254" class="body" font-size="16" font-weight="800" fill="#C2410C">Rp 18.000</text>
+    <rect x="133" y="233" width="30" height="30" rx="15" fill="#FFF4EC" stroke="#C2410C"/>
+    <text x="148" y="252" class="body" font-size="16" font-weight="700" fill="#C2410C" text-anchor="middle">+</text>
+  </g>
+
+  <!-- ==================== 5. CALLOUT BANNER MOBILE ==================== -->
+  <g transform="translate(16, 1120)">
+    <rect width="358" height="110" rx="14" fill="#F5ECE1" stroke="#E2D4C9"/>
+    <text x="16" y="32" class="heading" font-size="18" fill="#1E293B">Butuh bantuan pramusaji?</text>
+    <text x="16" y="52" class="body" font-size="12" fill="#64748B">Pramusaji siap melayani pesanan Anda ke Meja A12.</text>
+    <rect x="16" y="66" width="150" height="32" rx="16" fill="#C2410C"/>
+    <text x="91" y="86" class="body" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">Panggil Pramusaji</text>
+  </g>
+
+  <!-- ==================== 6. FOOTER MOBILE ==================== -->
+  <g transform="translate(0, 1250)">
+    <rect width="390" height="190" fill="#1E293B"/>
+    <text x="16" y="38" class="heading" font-size="22" fill="#FFFFFF">MejaKu</text>
+    <text x="16" y="60" class="body" font-size="12" fill="#94A3B8">Pesan kuliner pujasera langsung dari meja QR.</text>
+    <line x1="16" y1="90" x2="374" y2="90" stroke="#334155" stroke-width="1"/>
+    <text x="16" y="120" class="body" font-size="11" fill="#64748B">© 2026 MejaKu Digital Pujasera.</text>
+    <text x="16" y="140" class="body" font-size="11" fill="#64748B">Desain Sistem &amp; UI Mobile Figma</text>
+  </g>
+
+  <!-- ==================== 7. STICKY BOTTOM FLOATING CART BAR ==================== -->
+  <g transform="translate(0, 1440)">
+    <rect width="390" height="80" fill="#FFFFFF" filter="url(#bottom-bar-shadow)"/>
+    <line x1="0" y1="0" x2="390" y2="0" stroke="#E2D4C9" stroke-width="1"/>
+    <g transform="translate(16, 15)">
+      <!-- Left Cart Info -->
+      <text x="0" y="20" class="body" font-size="11" fill="#8190A6">2 Menu di Keranjang</text>
+      <text x="0" y="42" class="body" font-size="19" font-weight="800" fill="#C2410C">Rp 90.000</text>
+      <!-- Right Button -->
+      <rect x="210" y="4" width="148" height="44" rx="22" fill="#C2410C"/>
+      <text x="284" y="31" class="body" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">Lihat Pesanan →</text>
+    </g>
+  </g>
+</svg>

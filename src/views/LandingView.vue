@@ -108,7 +108,7 @@ function scrollToSection(id: string) {
 
           <div class="hero-media-frame">
             <img
-              src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=1200&q=80"
+              src="https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=1200&q=80"
               alt="Hidangan lezat di meja pujasera MejaKu"
               class="hero-img"
             />

@@ -1,0 +1,137 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Lobster+Two:wght@700&amp;family=Urbanist:wght@400;500;600;700;800&amp;display=swap');
+      .heading { font-family: 'Lobster Two', serif; font-weight: 700; }
+      .body { font-family: 'Urbanist', -apple-system, sans-serif; }
+    </style>
+    <filter id="modal-shadow" x="4" y="24" width="382" height="796" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Dark Blurred Backdrop -->
+  <rect width="390" height="844" fill="#0F172A" fill-opacity="0.6"/>
+
+  <!-- ==================== MODAL CARD (MOBILE OPTIMIZED) ==================== -->
+  <g transform="translate(16, 48)" filter="url(#modal-shadow)">
+    <!-- Modal Container -->
+    <rect width="358" height="748" rx="20" fill="#FAF6F0" stroke="#E2D4C9" stroke-width="1.5"/>
+
+    <!-- Modal Header -->
+    <g transform="translate(20, 24)">
+      <text x="0" y="24" class="heading" font-size="26" fill="#C2410C">Riwayat Pesanan</text>
+      <text x="0" y="44" class="body" font-size="12" fill="#64748B">Daftar transaksi pesanan Anda di Warung Bali Dwi</text>
+
+      <!-- Close Button -->
+      <g transform="translate(290, 4)">
+        <rect width="28" height="28" rx="14" fill="#F5ECE1"/>
+        <line x1="9" y1="9" x2="19" y2="19" stroke="#64748B" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="19" y1="9" x2="9" y2="19" stroke="#64748B" stroke-width="1.8" stroke-linecap="round"/>
+      </g>
+    </g>
+
+    <line x1="20" y1="90" x2="338" y2="90" stroke="#E2D4C9" stroke-width="1"/>
+
+    <!-- ==================== HISTORY CARD 1 (SEDANG DIMASAK) ==================== -->
+    <g transform="translate(20, 108)">
+      <rect width="318" height="260" rx="14" fill="#F5ECE1" stroke="#E2D4C9"/>
+
+      <!-- Header: Order Code & Status -->
+      <g transform="translate(14, 16)">
+        <text x="0" y="16" class="body" font-size="15" font-weight="800" fill="#1E293B">#MJK-73656-BA</text>
+        <text x="0" y="32" class="body" font-size="11" fill="#8190A6">14:04 WIB</text>
+        <!-- Status Pill: Sedang Dimasak -->
+        <rect x="180" y="2" width="110" height="24" rx="12" fill="#FFF7E8" stroke="#F1C58A"/>
+        <text x="235" y="18" class="body" font-size="11" font-weight="700" fill="#B45309" text-anchor="middle">Sedang Dimasak</text>
+      </g>
+
+      <line x1="14" y1="64" x2="304" y2="64" stroke="#E2D4C9" stroke-width="1" stroke-dasharray="3 3"/>
+
+      <!-- Ordered Items List -->
+      <g transform="translate(14, 82)">
+        <text x="0" y="14" class="body" font-size="12" font-weight="800" fill="#C2410C">1x</text>
+        <text x="24" y="14" class="body" font-size="13" font-weight="600" fill="#1E293B">Nasi Campur Bali Agung</text>
+        <text x="290" y="14" class="body" font-size="13" font-weight="700" fill="#64748B" text-anchor="end">Rp 58.000</text>
+      </g>
+
+      <line x1="14" y1="116" x2="304" y2="116" stroke="#E2D4C9" stroke-width="1"/>
+
+      <!-- Card Footer: Total Row (Full Width) -->
+      <g transform="translate(14, 134)">
+        <text x="0" y="16" class="body" font-size="13" fill="#64748B">Total:</text>
+        <text x="290" y="16" class="body" font-size="18" font-weight="800" fill="#C2410C" text-anchor="end">Rp 67.100</text>
+      </g>
+
+      <line x1="14" y1="164" x2="304" y2="164" stroke="#E2D4C9" stroke-width="1" stroke-dasharray="3 3"/>
+
+      <!-- Card Action Buttons: 2-Column Responsive Grid -->
+      <g transform="translate(14, 178)">
+        <!-- Button 1: Pesan Lagi (Reorder) -->
+        <rect width="140" height="42" rx="21" fill="#C2410C"/>
+        <!-- Refresh Icon -->
+        <path d="M42 21a7 7 0 1 1 2.5 5.3" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M44 26h-4v-4" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+        <text x="80" y="26" class="body" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">Pesan Lagi</text>
+
+        <!-- Button 2: Cek Status -->
+        <g transform="translate(150, 0)">
+          <rect width="140" height="42" rx="21" fill="#FFFFFF" stroke="#E2D4C9"/>
+          <text x="62" y="26" class="body" font-size="13" font-weight="700" fill="#C2410C" text-anchor="middle">Cek Status</text>
+          <path d="M104 21l3 3-3 3M95 24h12" fill="none" stroke="#C2410C" stroke-width="1.8" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- ==================== HISTORY CARD 2 (SELESAI / COMPLETED) ==================== -->
+    <g transform="translate(20, 384)">
+      <rect width="318" height="260" rx="14" fill="#F5ECE1" stroke="#E2D4C9"/>
+
+      <g transform="translate(14, 16)">
+        <text x="0" y="16" class="body" font-size="15" font-weight="800" fill="#1E293B">#MJK-51204-BA</text>
+        <text x="0" y="32" class="body" font-size="11" fill="#8190A6">16:20 WIB</text>
+        <!-- Status Pill: Selesai -->
+        <rect x="200" y="2" width="90" height="24" rx="12" fill="#ECFDF3" stroke="#15803D" stroke-opacity="0.3"/>
+        <text x="245" y="18" class="body" font-size="11" font-weight="700" fill="#15803D" text-anchor="middle">Selesai</text>
+      </g>
+
+      <line x1="14" y1="64" x2="304" y2="64" stroke="#E2D4C9" stroke-width="1" stroke-dasharray="3 3"/>
+
+      <g transform="translate(14, 82)">
+        <text x="0" y="14" class="body" font-size="12" font-weight="800" fill="#C2410C">1x</text>
+        <text x="24" y="14" class="body" font-size="13" font-weight="600" fill="#1E293B">Sate Ayam Bumbu Bali</text>
+        <text x="290" y="14" class="body" font-size="13" font-weight="700" fill="#64748B" text-anchor="end">Rp 32.000</text>
+
+        <text x="0" y="34" class="body" font-size="12" font-weight="800" fill="#C2410C">1x</text>
+        <text x="24" y="34" class="body" font-size="13" font-weight="600" fill="#1E293B">Es Cendol Durian</text>
+        <text x="290" y="34" class="body" font-size="13" font-weight="700" fill="#64748B" text-anchor="end">Rp 22.000</text>
+      </g>
+
+      <line x1="14" y1="130" x2="304" y2="130" stroke="#E2D4C9" stroke-width="1"/>
+
+      <g transform="translate(14, 146)">
+        <text x="0" y="16" class="body" font-size="13" fill="#64748B">Total:</text>
+        <text x="290" y="16" class="body" font-size="18" font-weight="800" fill="#C2410C" text-anchor="end">Rp 61.400</text>
+      </g>
+
+      <line x1="14" y1="174" x2="304" y2="174" stroke="#E2D4C9" stroke-width="1" stroke-dasharray="3 3"/>
+
+      <!-- Action Buttons -->
+      <g transform="translate(14, 188)">
+        <rect width="140" height="42" rx="21" fill="#C2410C"/>
+        <path d="M42 21a7 7 0 1 1 2.5 5.3" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M44 26h-4v-4" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+        <text x="80" y="26" class="body" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">Pesan Lagi</text>
+
+        <g transform="translate(150, 0)">
+          <rect width="140" height="42" rx="21" fill="#FFFFFF" stroke="#E2D4C9"/>
+          <text x="62" y="26" class="body" font-size="13" font-weight="700" fill="#C2410C" text-anchor="middle">Cek Status</text>
+          <path d="M104 21l3 3-3 3M95 24h12" fill="none" stroke="#C2410C" stroke-width="1.8" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- Scroll Indicator -->
+    <rect x="348" y="120" width="4" height="60" rx="2" fill="#8190A6" fill-opacity="0.6"/>
+  </g>
+</svg>

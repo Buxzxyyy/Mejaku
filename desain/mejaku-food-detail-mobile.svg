@@ -1,0 +1,212 @@
+<svg width="390" height="1580" viewBox="0 0 390 1580" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Lobster+Two:wght@700&amp;family=Urbanist:wght@400;500;600;700;800&amp;display=swap');
+      .heading { font-family: 'Lobster Two', serif; font-weight: 700; }
+      .body { font-family: 'Urbanist', -apple-system, sans-serif; }
+    </style>
+    <filter id="bottom-bar-shadow" x="0" y="-4" width="390" height="90" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="-4" stdDeviation="12" flood-color="#1E293B" flood-opacity="0.08"/>
+    </filter>
+    <clipPath id="hero-img-clip"><rect width="358" height="240" rx="16"/></clipPath>
+    <clipPath id="thumb-1"><rect width="64" height="64" rx="8"/></clipPath>
+    <clipPath id="thumb-2"><rect width="64" height="64" rx="8"/></clipPath>
+    <clipPath id="thumb-3"><rect width="64" height="64" rx="8"/></clipPath>
+    <clipPath id="thumb-4"><rect width="64" height="64" rx="8"/></clipPath>
+    <clipPath id="thumb-5"><rect width="64" height="64" rx="8"/></clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="390" height="1580" fill="#FAF6F0"/>
+
+  <!-- ==================== 1. TOP NAVBAR ==================== -->
+  <rect width="390" height="60" fill="#FAF6F0"/>
+  <line x1="0" y1="60" x2="390" y2="60" stroke="#E2D4C9" stroke-width="1"/>
+  
+  <g transform="translate(16, 12)">
+    <rect width="36" height="36" rx="10" fill="#C2410C"/>
+    <text x="18" y="24" class="heading" font-size="20" fill="#FFFFFF" text-anchor="middle">M</text>
+  </g>
+
+  <g transform="translate(195, 13)">
+    <rect width="105" height="34" rx="17" fill="#ECFDF3" stroke="#15803D" stroke-opacity="0.25"/>
+    <circle cx="15" cy="17" r="4" fill="#22C55E"/>
+    <text x="26" y="21" class="body" font-size="12" font-weight="700" fill="#15803D">Meja A12</text>
+    
+    <g transform="translate(112, 0)">
+      <rect width="34" height="34" rx="17" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <path d="M11 9h12v16l-3-2-3 2-3-2-3 2V9z" fill="none" stroke="#64748B" stroke-width="1.6"/>
+      <line x1="14" y1="13" x2="20" y2="13" stroke="#64748B" stroke-width="1.6" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(152, 0)">
+      <rect width="34" height="34" rx="17" fill="#C2410C"/>
+      <path d="M10 11h14l-1.5 12H11.5L10 11z" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+      <path d="M14 11V9.5a3 3 0 0 1 6 0v1.5" fill="none" stroke="#FFFFFF" stroke-width="1.6"/>
+      <circle cx="28" cy="7" r="6.5" fill="#FFFFFF"/>
+      <text x="28" y="10.5" class="body" font-size="9" font-weight="800" fill="#C2410C" text-anchor="middle">1</text>
+    </g>
+  </g>
+
+  <!-- ==================== 2. BREADCRUMB (UNIFIED BERANDA) ==================== -->
+  <g transform="translate(16, 75)">
+    <!-- Home icon -->
+    <path d="M4 11l6-5 6 5v7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-7z" fill="none" stroke="#64748B" stroke-width="1.5"/>
+    <text x="22" y="14" class="body" font-size="12" fill="#64748B">›  Beranda  ›  Warung Bali Dwi  ›  <tspan font-weight="700" fill="#1E293B">Sate Ayam Bali</tspan></text>
+  </g>
+
+  <!-- ==================== 3. HERO IMAGE & GALLERY ==================== -->
+  <g transform="translate(16, 105)">
+    <!-- Large Main Image -->
+    <g clip-path="url(#hero-img-clip)">
+      <image href="https://images.unsplash.com/photo-1529563021893-cc83c992d75d?auto=format&amp;fit=crop&amp;w=800&amp;q=80" width="358" height="240" preserveAspectRatio="xMidYMid slice"/>
+    </g>
+    <!-- Badge -->
+    <rect x="14" y="14" width="105" height="26" rx="6" fill="#C2410C"/>
+    <text x="66" y="31" class="body" font-size="11" font-weight="800" fill="#FFFFFF" text-anchor="middle">WAJIB COBA 🔥</text>
+
+    <!-- Thumbnail Strip (5 slots) -->
+    <g transform="translate(0, 252)">
+      <g clip-path="url(#thumb-1)" stroke="#C2410C" stroke-width="2">
+        <image href="https://images.unsplash.com/photo-1529563021893-cc83c992d75d?auto=format&amp;fit=crop&amp;w=200&amp;q=80" width="64" height="64" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <g transform="translate(73, 0)" clip-path="url(#thumb-2)">
+        <image href="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&amp;fit=crop&amp;w=200&amp;q=80" width="64" height="64" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <g transform="translate(146, 0)" clip-path="url(#thumb-3)">
+        <image href="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&amp;fit=crop&amp;w=200&amp;q=80" width="64" height="64" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <g transform="translate(219, 0)" clip-path="url(#thumb-4)">
+        <image href="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&amp;fit=crop&amp;w=200&amp;q=80" width="64" height="64" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+      <g transform="translate(292, 0)" clip-path="url(#thumb-5)">
+        <image href="https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&amp;fit=crop&amp;w=200&amp;q=80" width="64" height="64" preserveAspectRatio="xMidYMid slice"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ==================== 4. TITLE & DESCRIPTION ==================== -->
+  <g transform="translate(16, 440)">
+    <text x="0" y="16" class="body" font-size="11" font-weight="800" fill="#C2410C" letter-spacing="1">WARUNG BALI DWI</text>
+    <text x="0" y="50" class="heading" font-size="30" fill="#1E293B">Sate Ayam Bumbu Bali</text>
+    <text x="0" y="78" class="body" font-size="24" font-weight="800" fill="#C2410C">Rp 32.000</text>
+    <text x="0" y="106" class="body" font-size="13" line-height="1.5" fill="#64748B">10 tusuk sate ayam empuk dibakar di atas arang batok kelapa dengan baluran bumbu plecing rempah khas Bali dan lontong daun hangat.</text>
+  </g>
+
+  <!-- ==================== 5. SECTION: PILIH PORSI ==================== -->
+  <g transform="translate(16, 590)">
+    <text x="0" y="16" class="body" font-size="15" font-weight="800" fill="#1E293B">Pilih Porsi</text>
+    <text x="0" y="32" class="body" font-size="12" fill="#8190A6">Pilih salah satu ukuran porsi</text>
+
+    <!-- Option 1: Regular (Selected) -->
+    <g transform="translate(0, 44)">
+      <rect width="358" height="54" rx="12" fill="#FFF4EC" stroke="#C2410C" stroke-width="1.5"/>
+      <circle cx="24" cy="27" r="9" stroke="#C2410C" stroke-width="2" fill="#FFFFFF"/>
+      <circle cx="24" cy="27" r="5" fill="#C2410C"/>
+      <text x="44" y="25" class="body" font-size="14" font-weight="700" fill="#1E293B">Porsi Biasa (10 Tusuk)</text>
+      <text x="44" y="42" class="body" font-size="11" fill="#64748B">Standar dengan lontong</text>
+      <text x="340" y="32" class="body" font-size="13" font-weight="700" fill="#1E293B" text-anchor="end">+Rp 0</text>
+    </g>
+
+    <!-- Option 2: Jumbo -->
+    <g transform="translate(0, 108)">
+      <rect width="358" height="54" rx="12" fill="#FFFFFF" stroke="#E2D4C9" stroke-width="1"/>
+      <circle cx="24" cy="27" r="9" stroke="#8190A6" stroke-width="1.5" fill="#FFFFFF"/>
+      <text x="44" y="25" class="body" font-size="14" font-weight="700" fill="#1E293B">Porsi Jumbo (15 Tusuk)</text>
+      <text x="44" y="42" class="body" font-size="11" fill="#64748B">Ekstra sate lebih puas</text>
+      <text x="340" y="32" class="body" font-size="13" font-weight="700" fill="#C2410C" text-anchor="end">+Rp 15.000</text>
+    </g>
+  </g>
+
+  <!-- ==================== 6. SECTION: TINGKAT KEPEDASAN ==================== -->
+  <g transform="translate(16, 785)">
+    <text x="0" y="16" class="body" font-size="15" font-weight="800" fill="#1E293B">Tingkat Kepedasan</text>
+
+    <!-- Spice Buttons (Grid 3 cols) -->
+    <g transform="translate(0, 30)">
+      <rect width="112" height="42" rx="10" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <text x="56" y="26" class="body" font-size="12" font-weight="600" fill="#1E293B" text-anchor="middle">Manis Gurih</text>
+    </g>
+    <g transform="translate(122, 30)">
+      <rect width="114" height="42" rx="10" fill="#FFF4EC" stroke="#C2410C" stroke-width="1.5"/>
+      <text x="57" y="26" class="body" font-size="12" font-weight="700" fill="#C2410C" text-anchor="middle">Sedang 🌶️</text>
+    </g>
+    <g transform="translate(246, 30)">
+      <rect width="112" height="42" rx="10" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <text x="56" y="26" class="body" font-size="12" font-weight="600" fill="#1E293B" text-anchor="middle">Pedas Rawit 🔥</text>
+    </g>
+  </g>
+
+  <!-- ==================== 7. SECTION: TOPPING TAMBAHAN ==================== -->
+  <g transform="translate(16, 895)">
+    <text x="0" y="16" class="body" font-size="15" font-weight="800" fill="#1E293B">Topping &amp; Tambahan (Opsional)</text>
+
+    <g transform="translate(0, 34)">
+      <rect width="358" height="48" rx="10" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <rect x="16" y="16" width="16" height="16" rx="4" stroke="#8190A6" stroke-width="1.5" fill="#FFFFFF"/>
+      <text x="42" y="30" class="body" font-size="13" font-weight="600" fill="#1E293B">Ekstra Lontong Daun</text>
+      <text x="340" y="30" class="body" font-size="13" font-weight="700" fill="#64748B" text-anchor="end">+Rp 5.000</text>
+    </g>
+
+    <g transform="translate(0, 90)">
+      <rect width="358" height="48" rx="10" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <rect x="16" y="16" width="16" height="16" rx="4" stroke="#8190A6" stroke-width="1.5" fill="#FFFFFF"/>
+      <text x="42" y="30" class="body" font-size="13" font-weight="600" fill="#1E293B">Ekstra Bumbu Kacang Bali</text>
+      <text x="340" y="30" class="body" font-size="13" font-weight="700" fill="#64748B" text-anchor="end">+Rp 4.000</text>
+    </g>
+  </g>
+
+  <!-- ==================== 8. SECTION: CATATAN PESANAN ==================== -->
+  <g transform="translate(16, 1075)">
+    <text x="0" y="16" class="body" font-size="15" font-weight="800" fill="#1E293B">Catatan Khusus Koki</text>
+    <rect x="0" y="28" width="358" height="70" rx="10" fill="#FFFFFF" stroke="#E2D4C9"/>
+    <text x="14" y="52" class="body" font-size="12" fill="#8190A6">Contoh: sambal dipisah sedikit, jangan pakai daun bawang...</text>
+  </g>
+
+  <!-- ==================== 9. REKOMENDASI HIDANGAN LAINNYA ==================== -->
+  <g transform="translate(16, 1200)">
+    <text x="0" y="16" class="heading" font-size="20" fill="#1E293B">Menu Pendamping Rekomendasi</text>
+    
+    <!-- Rec Card 1 -->
+    <g transform="translate(0, 30)">
+      <rect width="173" height="190" rx="12" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <image href="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&amp;fit=crop&amp;w=300&amp;q=80" x="8" y="8" width="157" height="96" rx="8" preserveAspectRatio="xMidYMid slice"/>
+      <text x="10" y="126" class="body" font-size="13" font-weight="700" fill="#1E293B">Sate Lilit Tuna</text>
+      <text x="10" y="146" class="body" font-size="13" font-weight="800" fill="#C2410C">Rp 35.000</text>
+    </g>
+    <!-- Rec Card 2 -->
+    <g transform="translate(185, 30)">
+      <rect width="173" height="190" rx="12" fill="#FFFFFF" stroke="#E2D4C9"/>
+      <image href="https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&amp;fit=crop&amp;w=300&amp;q=80" x="8" y="8" width="157" height="96" rx="8" preserveAspectRatio="xMidYMid slice"/>
+      <text x="10" y="126" class="body" font-size="13" font-weight="700" fill="#1E293B">Es Kelapa Jeruk</text>
+      <text x="10" y="146" class="body" font-size="13" font-weight="800" fill="#C2410C">Rp 18.000</text>
+    </g>
+  </g>
+
+  <!-- ==================== 10. STICKY BOTTOM ACTION BAR ==================== -->
+  <g transform="translate(0, 1490)">
+    <rect width="390" height="90" fill="#FFFFFF" filter="url(#bottom-bar-shadow)"/>
+    <line x1="0" y1="0" x2="390" y2="0" stroke="#E2D4C9" stroke-width="1"/>
+
+    <g transform="translate(16, 16)">
+      <!-- Quantity Stepper -->
+      <g transform="translate(0, 0)">
+        <rect width="108" height="46" rx="23" fill="#F5ECE1"/>
+        <!-- Minus -->
+        <rect x="6" y="6" width="34" height="34" rx="17" fill="#FFFFFF"/>
+        <text x="23" y="28" class="body" font-size="18" font-weight="700" fill="#1E293B" text-anchor="middle">−</text>
+        <!-- Number -->
+        <text x="54" y="29" class="body" font-size="15" font-weight="800" fill="#1E293B" text-anchor="middle">1</text>
+        <!-- Plus -->
+        <rect x="68" y="6" width="34" height="34" rx="17" fill="#FFFFFF"/>
+        <text x="85" y="28" class="body" font-size="18" font-weight="700" fill="#1E293B" text-anchor="middle">+</text>
+      </g>
+
+      <!-- Add to Cart CTA -->
+      <g transform="translate(120, 0)">
+        <rect width="238" height="46" rx="23" fill="#C2410C"/>
+        <text x="119" y="28" class="body" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">+ Tambah • Rp 32.000</text>
+      </g>
+    </g>
+  </g>
+</svg>
