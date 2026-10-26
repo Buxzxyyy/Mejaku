@@ -9,8 +9,36 @@ import type {
   PrepStatus,
   PaymentStatus,
 } from '@/types'
+import { getApiBaseUrl } from '@/api/client'
 
-const DEFAULT_FOOD_IMAGE = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+export const FALLBACK_FOOD_IMAGE = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80'
+
+// Backward-compat untuk import lama.
+const DEFAULT_FOOD_IMAGE = FALLBACK_FOOD_IMAGE
+
+/**
+ * Normalisasi URL foto menu dari backend.
+ * Backend mengirim `image` (URL Cloudinary penuh) atau null.
+ * - URL absolut (http/https/data:/blob:) dipakai apa adanya.
+ * - Path relatif (/storage/...) digabung dengan origin API.
+ * - Kosong / tidak valid -> null (pemanggil memakai fallback).
+ */
+export function resolveBackendImage(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const v = value.trim()
+  if (!v) return null
+  if (/^(https?:\/\/|data:|blob:)/i.test(v)) return v
+  if (v.startsWith('//')) return `https:${v}`
+  const base = getApiBaseUrl().replace(/\/api\/?$/, '')
+  if (v.startsWith('/')) return `${base}${v}`
+  return `${base}/${v}`
+}
+
+/** Dipakai di @error pada <img> menu: ganti ke placeholder bila URL BE mati. */
+export function handleMenuImgError(e: Event): void {
+  const el = e.target as HTMLImageElement | null
+  if (el && el.src !== FALLBACK_FOOD_IMAGE) el.src = FALLBACK_FOOD_IMAGE
+}
 
 function formatWibTime(value?: string | null): string | undefined {
   if (!value) return undefined
@@ -100,9 +128,9 @@ export function transformBackendMenuItem(raw: any): MenuItem {
     ? raw.merchant.name
     : (typeof raw.merchant === 'string' ? raw.merchant : 'Mitra Pujasera')
 
-  const img = raw.image || DEFAULT_FOOD_IMAGE
+  const img = resolveBackendImage(raw.image ?? raw.image_url) || DEFAULT_FOOD_IMAGE
   const gallery = Array.isArray(raw.gallery) && raw.gallery.length > 0
-    ? raw.gallery
+    ? raw.gallery.map((g: any) => resolveBackendImage(g) || img)
     : [img]
 
   return {
@@ -154,7 +182,7 @@ export function transformBackendOrder(raw: any): Order {
           slug: menuItem.slug || `menu-${menuItem.id || idx + 1}`,
           name: menuItem.name || 'Menu Pujasera',
           merchant: menuItem.merchant?.name || 'Warung Bali Dwi',
-          image: menuItem.image || DEFAULT_FOOD_IMAGE,
+          image: resolveBackendImage(menuItem.image ?? menuItem.image_url) || DEFAULT_FOOD_IMAGE,
           basePrice: unitPrice,
           portion,
           spice,

@@ -20,6 +20,7 @@ import NoticeBox from '@/components/common/NoticeBox.vue'
 import HelpCallout from '@/components/common/HelpCallout.vue'
 import { useOrderStore } from '@/stores/orderStore'
 import { formatRupiah } from '@/utils/pricing'
+import { handleMenuImgError } from '@/utils/adapters'
 import { api } from '@/api/client'
 
 const router = useRouter()
@@ -205,6 +206,7 @@ async function handleCreateOrder() {
                     :src="item.image"
                     :alt="item.name"
                     class="item-thumb"
+                    @error="handleMenuImgError"
                   />
 
                   <div class="item-details">

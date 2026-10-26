@@ -227,6 +227,14 @@ function clearSearch() {
               <X :size="16" />
             </button>
           </div>
+          <button
+            type="button"
+            class="scan-qr-btn"
+            @click="showScanner = true"
+          >
+            <QrCode :size="16" />
+            <span>Pindai QR Meja</span>
+          </button>
         </div>
       </header>
 
@@ -641,6 +649,26 @@ function clearSearch() {
 
 .clear-search-btn:hover {
   color: var(--text-heading);
+}
+
+.scan-qr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.scan-qr-btn:hover {
+  background: var(--primary-hover);
 }
 
 .quick-filter-row {

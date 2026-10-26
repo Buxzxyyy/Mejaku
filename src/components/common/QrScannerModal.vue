@@ -79,11 +79,12 @@ async function loadTables() {
 }
 
 // Generate QR preview dari kode meja yang benar-benar ada di database.
+// Format kanonis: {origin}/pesan/{CODE} (sama dengan QR cetak dashboard).
 async function generateTableQrs() {
   const origin = window.location.origin
   for (const t of tables.value) {
     try {
-      t.qrUrl = await QRCode.toDataURL(`${origin}/?table=${encodeURIComponent(t.code)}`, {
+      t.qrUrl = await QRCode.toDataURL(`${origin}/pesan/${encodeURIComponent(t.code)}`, {
         width: 220,
         margin: 1,
         color: {

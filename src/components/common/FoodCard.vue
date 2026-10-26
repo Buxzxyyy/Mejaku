@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { Plus, Check } from 'lucide-vue-next'
 import type { MenuItem } from '@/types'
 import { formatRupiah } from '@/utils/pricing'
+import { handleMenuImgError } from '@/utils/adapters'
 
 const props = defineProps<{
   item: MenuItem
@@ -42,6 +43,7 @@ function handleAdd(e: Event) {
         :alt="`Foto hidangan ${item.name}`"
         class="food-img"
         loading="lazy"
+        @error="handleMenuImgError"
       />
       <div v-if="item.badge" class="badge-tag">
         {{ item.badge }}

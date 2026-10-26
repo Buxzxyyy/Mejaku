@@ -15,7 +15,7 @@ import type {
 } from '@/types'
 import { calculateUnitPrice, calculateOrderPricing } from '@/utils/pricing'
 import { api } from '@/api/client'
-import { transformBackendOrder, transformBackendMenuItem } from '@/utils/adapters'
+import { transformBackendOrder, transformBackendMenuItem, FALLBACK_FOOD_IMAGE } from '@/utils/adapters'
 
 export const INITIAL_DEFAULT_TABLE: TableInfo = {
   tableNumber: 'A12',
@@ -30,7 +30,7 @@ export const DEFAULT_FALLBACK_ITEM: MenuItem = {
   merchant: 'Warung Bali Dwi',
   basePrice: 58000,
   description: 'Nasi campur khas Bali dengan lauk lengkap dan bumbu rempah pilihan.',
-  image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+  image: FALLBACK_FOOD_IMAGE,
   portions: [{ id: '1', name: 'Porsi Biasa', description: 'Ukuran porsi standar', price: 0 }],
   spices: [{ id: '1', name: 'Biasa' }],
   addons: [],
@@ -348,19 +348,33 @@ export const useOrderStore = defineStore('order', () => {
     }
 
     const tableCode = table.value.tableNumber || 'A12'
+    // Idempotency key stabil per isi keranjang: retry request yang sama
+    // (mis. double-klik) tidak membuat order ganda di backend.
+    const cartSig = cartItems.value.map((it) => `${it.itemId}x${it.quantity}`).join('|')
+    const idempotency_key = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? `mejaku-${tableCode}-${cartSig}-${crypto.randomUUID()}`
+      : `mejaku-${tableCode}-${cartSig}-${Date.now()}`
     const payload = {
       table_code: tableCode,
       notes: customerNote.value.trim() || undefined,
       promo_code: promoCode.value || undefined,
-      idempotency_key: `mejaku-${tableCode}-${Date.now()}`,
+      idempotency_key,
       items: cartItems.value.map((it) => {
         const numId = parseInt(it.itemId.replace(/\D/g, ''), 10)
+        if (isNaN(numId) || numId <= 0) {
+          throw new Error(`ID menu "${it.name}" tidak valid. Muat ulang menu dari server.`)
+        }
+        const parseOptId = (raw?: string | number | null) => {
+          if (raw === undefined || raw === null || raw === '') return undefined
+          const n = parseInt(String(raw).replace(/\D/g, ''), 10)
+          return isNaN(n) || n <= 0 ? undefined : n
+        }
         return {
-          menu_item_id: isNaN(numId) || numId === 0 ? 1 : numId,
+          menu_item_id: numId,
           quantity: it.quantity,
-          portion_id: it.portion?.id ? (parseInt(String(it.portion.id).replace(/\D/g, ''), 10) || undefined) : undefined,
-          spice_level_id: it.spice?.id ? (parseInt(String(it.spice.id).replace(/\D/g, ''), 10) || undefined) : undefined,
-          addon_ids: (it.addons || []).map((a) => parseInt(String(a.id).replace(/\D/g, ''), 10)).filter((n) => !isNaN(n) && n > 0),
+          portion_id: it.portion?.id ? parseOptId(it.portion.id as any) : undefined,
+          spice_level_id: it.spice?.id ? parseOptId(it.spice.id as any) : undefined,
+          addon_ids: (it.addons || []).map((a) => parseOptId(a.id as any)).filter((n): n is number => typeof n === 'number'),
         }
       }),
     }
@@ -465,6 +479,8 @@ export const useOrderStore = defineStore('order', () => {
     }
 
     syncWithStorage()
+    // Sinkronkan status riwayat lain di latar (tanpa blokir UI).
+    void syncHistoryStatus()
   }
 
   function applyPaymentStatus(payment: any) {

@@ -35,6 +35,10 @@ function handleOpenAiChat() {
         <div class="help-desc">{{ description }}</div>
       </div>
     </div>
+    <button type="button" class="help-btn" @click="handleOpenAiChat">
+      <Sparkles :size="14" />
+      <span>{{ actionText }}</span>
+    </button>
   </div>
 </template>
 

@@ -16,7 +16,7 @@ import AppFooter from '@/components/common/AppFooter.vue'
 import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
 import QuantityStepper from '@/components/common/QuantityStepper.vue'
 import FoodCard from '@/components/common/FoodCard.vue'
-import { transformBackendMenuItem } from '@/utils/adapters'
+import { transformBackendMenuItem, handleMenuImgError } from '@/utils/adapters'
 import { useOrderStore } from '@/stores/orderStore'
 import { formatRupiah } from '@/utils/pricing'
 import type { PortionOption, SpiceOption, AddonOption, MenuItem } from '@/types'
@@ -251,6 +251,8 @@ function handleRecommendationClick(item: MenuItem) {
 
 // Menu Rating Feature State
 const showRatingModal = ref(false)
+const reviewToastOk = ref(true)
+const reviewToastMsg = ref('')
 const userRating = ref(5)
 const userReviewText = ref('')
 const selectedTags = ref<string[]>([])
@@ -288,17 +290,25 @@ async function submitRating() {
     userReviewText.value.trim()
   ].filter(Boolean).join(" ")
 
+  // Kaitkan ke pesanan lunas terakhir yang berisi menu ini bila ada,
+  // agar rating tercatat terverifikasi (BE menolak bila tidak lunas).
+  const paidOrder = orderStore.orderHistory.find((o) =>
+    o.paymentStatus === 'paid' && (o.items || []).some((it) => it.itemId === String(currentItem.value?.id))
+  ) || (orderStore.currentOrder?.paymentStatus === 'paid' ? orderStore.currentOrder : null)
+  const orderNumber = paidOrder
+    ? String(paidOrder.orderNumber || paidOrder.id || '').replace(/^#/, '')
+    : undefined
+
   try {
     const res = await api.submitMenuRating(targetId, {
       rating: userRating.value,
       review: combinedReview || undefined,
-      customer_name: "Pelanggan",
+      customer_name: undefined,
+      ...(orderNumber ? { order_number: orderNumber } : {}),
     })
     if (res.data && res.data.average_rating !== undefined) {
       currentItem.value.rating = Number(res.data.average_rating)
       currentItem.value.reviewsCount = Number(res.data.rating_count)
-    } else if (currentItem.value.reviewsCount !== undefined) {
-      currentItem.value.reviewsCount++
     }
 
     if (combinedReview) {
@@ -310,14 +320,16 @@ async function submitRating() {
         created_at: new Date().toISOString(),
       })
     }
-  } catch (err) {
-    if (currentItem.value.reviewsCount !== undefined) {
-      currentItem.value.reviewsCount++
-    }
+    reviewToastOk.value = true
+    reviewSubmittedToast.value = true
+  } catch (err: any) {
+    // Gagal (mis. belum ada pesanan lunas berisi menu ini) — jangan ubah angka lokal.
+    reviewToastOk.value = false
+    reviewToastMsg.value = err?.message || 'Ulasan gagal dikirim. Pastikan kamu sudah memesan & melunasi menu ini.'
+    reviewSubmittedToast.value = true
   } finally {
     isSubmittingRating.value = false
     showRatingModal.value = false
-    reviewSubmittedToast.value = true
     userReviewText.value = ""
     selectedTags.value = []
     setTimeout(() => {
@@ -347,8 +359,8 @@ watch(showRatingModal, (val) => {
           <Star :size="18" fill="#F59E0B" color="#F59E0B" />
         </div>
         <div class="toast-content">
-          <strong>Terima kasih atas ulasanmu!</strong>
-          <span>Rating {{ userRating }} bintang telah berhasil dicatat untuk {{ currentItem?.name || 'hidangan ini' }}.</span>
+          <strong>{{ reviewToastOk ? 'Terima kasih atas ulasanmu!' : 'Ulasan belum terkirim' }}</strong>
+          <span>{{ reviewToastOk ? `Rating ${userRating} bintang telah berhasil dicatat untuk ${currentItem?.name || 'hidangan ini'}.` : reviewToastMsg }}</span>
         </div>
       </div>
     </Transition>
@@ -385,6 +397,7 @@ watch(showRatingModal, (val) => {
                 :src="galleryImages[activeGalleryIndex] || currentItem.image"
                 :alt="`${currentItem.name} foto ${activeGalleryIndex + 1}`"
                 class="main-food-image"
+                @error="handleMenuImgError"
               />
             </Transition>
             <div v-if="currentItem.badge" class="gallery-badge-overlay">
@@ -423,6 +436,7 @@ watch(showRatingModal, (val) => {
                 class="thumb-img"
                 :class="{ 'thumb-img-blurred': isOverflowSlot(idx) }"
                 draggable="false"
+                @error="handleMenuImgError"
               />
 
               <!-- +N overlay on 5th slot when there are more images and not expanded -->

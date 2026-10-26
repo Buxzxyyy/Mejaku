@@ -20,10 +20,12 @@ import AppFooter from '@/components/common/AppFooter.vue'
 import FoodCard from '@/components/common/FoodCard.vue'
 import QrScannerModal from '@/components/common/QrScannerModal.vue'
 import { transformBackendMenuItem } from '@/utils/adapters'
+import { useOrderStore } from '@/stores/orderStore'
 import { api } from '@/api/client'
 import type { MenuItem } from '@/types'
 
 const router = useRouter()
+const orderStore = useOrderStore()
 const showScanner = ref(false)
 const featuredItems = ref<MenuItem[]>([])
 const isLoadingFeatured = ref(true)
@@ -42,6 +44,11 @@ onMounted(async () => {
 })
 
 function handleSelectFood(item: MenuItem) {
+  router.push(`/menu/${item.slug}`)
+}
+
+function handleQuickAddFood(item: MenuItem) {
+  orderStore.addItemToCart(item)
   router.push(`/menu/${item.slug}`)
 }
 
@@ -271,7 +278,7 @@ function scrollToSection(id: string) {
             :key="item.id"
             :item="item"
             @select="handleSelectFood"
-            @add="handleSelectFood"
+            @add="handleQuickAddFood"
           />
         </div>
       </div>

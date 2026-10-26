@@ -22,6 +22,7 @@ import OrderTimeline from '@/components/common/OrderTimeline.vue'
 import HelpCallout from '@/components/common/HelpCallout.vue'
 import { useOrderStore } from '@/stores/orderStore'
 import { formatRupiah } from '@/utils/pricing'
+import { handleMenuImgError } from '@/utils/adapters'
 import type { PrepStatus } from '@/types'
 
 const router = useRouter()
@@ -200,9 +201,10 @@ onUnmounted(() => {
   }
 })
 
-function handleStatusUpdate(newStatus: PrepStatus) {
-  currentPrepStatus.value = newStatus
-  orderStore.setPrepStatus(newStatus)
+function handleStatusUpdate(_newStatus: PrepStatus) {
+  // Timeline bersifat read-only: status dapur hanya boleh berubah dari
+  // backend (polling 4 detik menimpanya). Minta status terbaru sekarang.
+  void checkLiveOrderStatus()
 }
 
 function scrollToTimeline() {
@@ -378,6 +380,7 @@ function handleReorderThisOrder() {
                   :src="item.image || orderStore.currentItemConfig.image"
                   :alt="item.name"
                   class="dish-mini-img"
+                  @error="handleMenuImgError"
                 />
                 <div class="dish-mini-meta">
                   <span class="dish-merchant">{{ item.merchant || 'Warung Bali Dwi' }}</span>
