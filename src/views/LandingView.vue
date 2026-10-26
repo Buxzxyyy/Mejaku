@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   QrCode,
@@ -19,15 +19,30 @@ import AppNavbar from '@/components/common/AppNavbar.vue'
 import AppFooter from '@/components/common/AppFooter.vue'
 import FoodCard from '@/components/common/FoodCard.vue'
 import QrScannerModal from '@/components/common/QrScannerModal.vue'
-import { FEATURED_LANDING_ITEMS } from '@/data/mockData'
+import { transformBackendMenuItem } from '@/utils/adapters'
+import { api } from '@/api/client'
 import type { MenuItem } from '@/types'
 
 const router = useRouter()
 const showScanner = ref(false)
+const featuredItems = ref<MenuItem[]>([])
+const isLoadingFeatured = ref(true)
+
+onMounted(async () => {
+  try {
+    const res = await api.getMenus()
+    if (res.data && Array.isArray(res.data)) {
+      featuredItems.value = res.data.map(transformBackendMenuItem)
+    }
+  } catch {
+    featuredItems.value = []
+  } finally {
+    isLoadingFeatured.value = false
+  }
+})
 
 function handleSelectFood(item: MenuItem) {
-  // Always navigate to the menu detail page
-  router.push('/menu/nasi-campur-bali-agung')
+  router.push(`/menu/${item.slug}`)
 }
 
 function scrollToSection(id: string) {
@@ -118,7 +133,7 @@ function scrollToSection(id: string) {
             <div class="floating-badge-table animate-float">
               <div class="pulse-dot" />
               <div>
-                <div class="table-tag-venue">Jakarta Culinary Hall</div>
+                <div class="table-tag-venue">MejaKu</div>
                 <div class="table-tag-name">Meja A12 · Terverifikasi</div>
               </div>
             </div>
@@ -242,7 +257,7 @@ function scrollToSection(id: string) {
           <button
             type="button"
             class="btn-outline btn-all-menu"
-            @click="router.push('/menu/nasi-campur-bali-agung')"
+            @click="router.push('/menu')"
           >
             <span>Lihat Semua Menu Pujasera</span>
             <ArrowRight :size="16" />
@@ -252,7 +267,7 @@ function scrollToSection(id: string) {
         <!-- 4 Grid Cards -->
         <div class="featured-grid">
           <FoodCard
-            v-for="item in FEATURED_LANDING_ITEMS"
+            v-for="item in featuredItems"
             :key="item.id"
             :item="item"
             @select="handleSelectFood"
@@ -333,10 +348,10 @@ function scrollToSection(id: string) {
             <div class="phone-speaker" />
             <div class="phone-screen">
               <!-- Status bar -->
-              <div class="phone-status-bar">
-                <span>09:41</span>
-                <div class="phone-status-icons">📶 🔋</div>
-              </div>
+                <div class="phone-status-icons">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                  <svg width="14" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="11" x2="23" y2="13"/></svg>
+                </div>
 
               <!-- Mini MejaKu screen UI inside phone -->
               <div class="phone-inner-content">

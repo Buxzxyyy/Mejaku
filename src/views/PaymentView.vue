@@ -1,23 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 import {
   ShieldCheck,
-  Clock,
   Copy,
   Check,
   QrCode,
   CreditCard,
-  Wallet,
-  Smartphone,
-  ChevronRight,
-  Info,
+  Banknote,
   CheckCircle2,
   RefreshCw,
-  ExternalLink,
-  X,
   AlertTriangle,
+  Loader2,
 } from 'lucide-vue-next'
+import QRCode from 'qrcode'
 import AppNavbar from '@/components/common/AppNavbar.vue'
 import AppFooter from '@/components/common/AppFooter.vue'
 import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
@@ -27,74 +23,54 @@ import HelpCallout from '@/components/common/HelpCallout.vue'
 import { useOrderStore } from '@/stores/orderStore'
 import { formatRupiah } from '@/utils/pricing'
 import type { PaymentMethodType } from '@/types'
+import { api } from '@/api/client'
 
 const router = useRouter()
 const route = useRoute()
 const orderStore = useOrderStore()
 
-const breadcrumbItems = [
+const breadcrumbItems = computed(() => [
   { label: 'Beranda', to: '/' },
-  { label: orderStore.currentItemConfig.merchant, to: '/' },
+  {
+    label: orderStore.currentOrder?.merchant || orderStore.currentItemConfig.merchant || 'MejaKu',
+    to: '/menu',
+  },
   { label: 'Pesanan', to: '/checkout' },
   { label: 'Pembayaran' },
-]
+])
 
 const selectedMethod = ref<PaymentMethodType>('qris')
-const copySuccess = ref(false)
-const showManualModal = ref(false)
-const manualProofSent = ref(false)
-
-// Bank Virtual Account State
 const selectedBank = ref('bca')
-const bankList = [
-  { id: 'bca', name: 'BCA Virtual Account', code: '8801 2948 2019 4812', logo: 'BCA' },
-  { id: 'mandiri', name: 'Mandiri Virtual Account', code: '8910 8294 0192 3841', logo: 'Mandiri' },
-  { id: 'bni', name: 'BNI Virtual Account', code: '8271 0938 1029 4819', logo: 'BNI' },
-  { id: 'bri', name: 'BRI Virtual Account (BRIVA)', code: '8019 3810 2938 1092', logo: 'BRI' },
-  { id: 'permata', name: 'Permata Virtual Account', code: '8412 0948 1029 3847', logo: 'Permata' },
-]
-
-const currentBank = computed(() => {
-  return bankList.find((b) => b.id === selectedBank.value) || bankList[0]
-})
-
+const payment = ref<any>(null)
+const qrImage = ref('')
+const isCharging = ref(false)
+const chargeError = ref('')
+const copySuccess = ref(false)
 const copyVaSuccess = ref(false)
-function handleCopyVaCode() {
-  navigator.clipboard.writeText(currentBank.value.code.replace(/\s+/g, '')).then(() => {
-    copyVaSuccess.value = true
-    setTimeout(() => {
-      copyVaSuccess.value = false
-    }, 2000)
-  })
-}
+const checkMessage = ref('')
+const localExpired = ref(false)
+const isLoadingOrder = ref(false)
+const orderLoadError = ref('')
+const timeLeft = ref({ hours: '00', minutes: '00', seconds: '00' })
 
-// E-Wallet State
-const selectedEwallet = ref('gopay')
-const ewalletPhone = ref('0812-3456-7890')
-const ewalletList = [
-  { id: 'gopay', name: 'GoPay', iconColor: '#00AED6' },
-  { id: 'ovo', name: 'OVO', iconColor: '#4C3494' },
-  { id: 'dana', name: 'DANA', iconColor: '#118EEA' },
-  { id: 'shopeepay', name: 'ShopeePay', iconColor: '#EE4D2D' },
+let timerInterval: ReturnType<typeof setInterval> | null = null
+let statusPollTimer: ReturnType<typeof setInterval> | null = null
+let redirectTimer: ReturnType<typeof setTimeout> | null = null
+let redirectScheduled = false
+
+const bankList = [
+  { id: 'bca', name: 'BCA Virtual Account', short: 'BCA' },
+  { id: 'bri', name: 'BRI Virtual Account (BRIVA)', short: 'BRI' },
+  { id: 'bni', name: 'BNI Virtual Account', short: 'BNI' },
+  { id: 'permata', name: 'Permata Virtual Account', short: 'Permata' },
 ]
 
-// Countdown timer
-const timeLeft = ref({ hours: '00', minutes: '18', seconds: '42' })
-let timerInterval: any = null
-
-// Dynamic deadline formatting based on actual orderStore deadline
-const formattedDeadline = computed(() => {
-  const d = new Date(orderStore.paymentDeadline || (Date.now() + (18 * 60 + 42) * 1000))
-  const h = String(d.getHours()).padStart(2, '0')
-  const m = String(d.getMinutes()).padStart(2, '0')
-  return `Hari ini, ${h}:${m} WIB`
+const orderNumber = computed(() => {
+  return String(route.params.orderId || '') || orderStore.currentOrder?.id || ''
 })
 
-const formattedDeadlineShort = computed(() => {
-  const d = new Date(orderStore.paymentDeadline || (Date.now() + (18 * 60 + 42) * 1000))
-  const h = String(d.getHours()).padStart(2, '0')
-  const m = String(d.getMinutes()).padStart(2, '0')
-  return `${h}:${m} WIB`
+const currentOrderNumber = computed(() => {
+  return orderStore.currentOrder?.orderNumber || (orderNumber.value ? `#${orderNumber.value}` : 'Pesanan Meja')
 })
 
 const routeOrderId = computed(() => (route.params.orderId as string) || '')
@@ -127,38 +103,345 @@ const orderItems = computed(() => {
   if (orderStore.orderHistory.length > 0 && (orderStore.orderHistory[0]?.items?.length ?? 0) > 0) {
     return orderStore.orderHistory[0].items!
   }
-  return [
-    {
-      cartId: 'default-1',
-      itemId: '1',
-      name: orderStore.currentItemConfig.name,
-      merchant: orderStore.currentItemConfig.merchant,
-      image: orderStore.currentItemConfig.image,
-      quantity: orderStore.quantity,
-      portion: orderStore.currentPortion,
-      spice: orderStore.currentSpice,
-      addons: orderStore.currentAddons,
-      subtotal: orderStore.pricing.subtotal,
-    }
-  ]
+  return []
 })
 
-const paymentPricing = computed(() => {
-  if (activeOrder.value?.pricing && activeOrder.value.pricing.subtotal > 0) {
-    return activeOrder.value.pricing
-  }
-  if (orderStore.currentOrder?.pricing && orderStore.currentOrder.pricing.subtotal > 0) {
-    return orderStore.currentOrder.pricing
-  }
-  return orderStore.pricing
+const orderTable = computed(() => orderStore.currentOrder?.table || orderStore.table)
+const orderPricing = computed(() => orderStore.orderPricing)
+
+const paymentStatus = computed(() => {
+  return String(payment.value?.status || orderStore.currentOrder?.paymentStatus || 'pending')
 })
+
+const isCashier = computed(() => selectedMethod.value === 'cashier')
+
+const isPaid = computed(() => {
+  return paymentStatus.value === 'paid' || orderStore.currentOrder?.paymentStatus === 'paid'
+})
+
+const isExpired = computed(() => {
+  const unusable = ['expired', 'failed', 'cancelled']
+  return (
+    localExpired.value ||
+    unusable.includes(paymentStatus.value) ||
+    unusable.includes(String(orderStore.currentOrder?.paymentStatus))
+  )
+})
+
+const selectedBankInfo = computed(() => {
+  const bankId = payment.value?.va_bank || selectedBank.value
+  return bankList.find((bank) => bank.id === bankId) || bankList[0]
+})
+
+const displayedPaymentCode = computed(() => {
+  return (
+    payment.value?.payment_code ||
+    orderStore.currentOrder?.paymentCode ||
+    orderNumber.value.replace(/-/g, '')
+  )
+})
+
+const deadlineTimestamp = computed<number | null>(() => {
+  if (isCashier.value) return null
+  const raw = payment.value?.expires_at || orderStore.currentOrder?.expiresAt
+  if (!raw) return null
+  const timestamp = new Date(raw).getTime()
+  return Number.isNaN(timestamp) ? null : timestamp
+})
+
+function formatWibTime(date: Date): string {
+  return date
+    .toLocaleTimeString('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    .replace('.', ':')
+}
+
+const formattedDeadline = computed(() => {
+  if (isCashier.value) return 'Tanpa batas waktu'
+  if (isExpired.value) return 'Waktu habis'
+  if (!deadlineTimestamp.value) return '—'
+  return `Hari ini, ${formatWibTime(new Date(deadlineTimestamp.value))} WIB`
+})
+
+const formattedDeadlineShort = computed(() => {
+  if (!deadlineTimestamp.value) return '—'
+  return `${formatWibTime(new Date(deadlineTimestamp.value))} WIB`
+})
+
+const vaNumber = computed(() => formatVaNumber(payment.value?.va_number || ''))
+
+function formatVaNumber(value: string): string {
+  return String(value)
+    .replace(/\s+/g, '')
+    .replace(/(.{4})/g, '$1 ')
+    .trim()
+}
+
+function mapPaymentMethod(method?: string | null): PaymentMethodType {
+  if (method === 'bank_transfer') return 'bank_va'
+  if (method === 'cashier') return 'cashier'
+  return 'qris'
+}
+
+async function renderQr(payload: string) {
+  try {
+    qrImage.value = await QRCode.toDataURL(payload, {
+      width: 360,
+      margin: 1,
+      color: {
+        dark: '#1E293B',
+        light: '#FFFFFF',
+      },
+      errorCorrectionLevel: 'M',
+    })
+  } catch {
+    qrImage.value = ''
+    chargeError.value = 'Gagal menampilkan gambar QRIS. Silakan coba lagi.'
+  }
+}
+
+function stopPolling() {
+  if (statusPollTimer) {
+    clearInterval(statusPollTimer)
+    statusPollTimer = null
+  }
+}
+
+function stopTimers() {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+  stopPolling()
+}
+
+function scheduleRedirect() {
+  if (redirectScheduled || !orderNumber.value) return
+  redirectScheduled = true
+  stopTimers()
+  redirectTimer = setTimeout(() => {
+    router.push(`/orders/${orderNumber.value}/confirmation`)
+  }, 900)
+}
+
+function applyPaymentData(data: any) {
+  if (!data) return
+
+  payment.value = data
+  const method = mapPaymentMethod(data.method)
+  selectedMethod.value = method
+
+  if (data.method === 'bank_transfer' && data.va_bank) {
+    selectedBank.value = String(data.va_bank)
+  }
+
+  if (method !== 'qris') {
+    qrImage.value = ''
+  } else if (data.qr_data) {
+    void renderQr(data.qr_data)
+  }
+
+  if (data.expires_at) {
+    orderStore.setPaymentDeadline(data.expires_at)
+    localExpired.value = false
+  }
+
+  if (['expired', 'failed', 'cancelled'].includes(String(data.status))) {
+    localExpired.value = true
+    stopPolling()
+  }
+
+  orderStore.applyPaymentStatus(data)
+
+  if (data.payment_status === 'paid' || data.status === 'paid') {
+    scheduleRedirect()
+  }
+}
+
+async function ensurePayment(force = false) {
+  if (!orderNumber.value || isCharging.value) return
+
+  if (!force && payment.value) {
+    if (selectedMethod.value === 'cashier' && payment.value.method === 'cashier') return
+    if (selectedMethod.value === 'qris' && payment.value.qr_data && !chargeError.value) return
+    if (
+      selectedMethod.value === 'bank_va' &&
+      payment.value.va_number &&
+      String(payment.value.va_bank || selectedBank.value) === selectedBank.value
+    ) {
+      return
+    }
+  }
+
+  isCharging.value = true
+  chargeError.value = ''
+  checkMessage.value = ''
+
+  try {
+    let res
+
+    if (selectedMethod.value === 'qris') {
+      res = await api.createPayment(orderNumber.value, 'qris', 'qris')
+    } else if (selectedMethod.value === 'bank_va') {
+      res = await api.createPayment(orderNumber.value, 'bank_transfer', 'va', selectedBank.value)
+    } else {
+      res = await api.createPayment(orderNumber.value, 'cashier')
+    }
+
+    if (!res.data) {
+      throw new Error((res as any).message || 'Gagal membuat pembayaran.')
+    }
+
+    applyPaymentData(res.data)
+
+    if (selectedMethod.value === 'qris' && !res.data.qr_data) {
+      chargeError.value = 'QRIS belum tersedia dari server. Silakan coba lagi.'
+    }
+  } catch (err: any) {
+    chargeError.value =
+      err?.data?.message || err?.message || 'Gagal membuat pembayaran. Silakan coba lagi.'
+  } finally {
+    isCharging.value = false
+  }
+}
+
+async function handleSelectMethod(method: PaymentMethodType) {
+  if (isCharging.value || isPaid.value) return
+
+  const previousMethod = selectedMethod.value
+  selectedMethod.value = method
+  orderStore.setPaymentMethod(method)
+  checkMessage.value = ''
+
+  if (method !== previousMethod) {
+    payment.value = null
+    qrImage.value = ''
+    chargeError.value = ''
+    localExpired.value = false
+  }
+
+  await ensurePayment(false)
+}
+
+async function handleSelectBank(bankId: string) {
+  if (isCharging.value || isPaid.value) return
+  if (bankId === selectedBank.value && payment.value?.va_number) return
+
+  selectedBank.value = bankId
+  payment.value = null
+  qrImage.value = ''
+  chargeError.value = ''
+  checkMessage.value = ''
+  localExpired.value = false
+
+  await ensurePayment(false)
+}
+
+async function handleCopyPaymentCode() {
+  if (!displayedPaymentCode.value) return
+  try {
+    await navigator.clipboard.writeText(displayedPaymentCode.value)
+    copySuccess.value = true
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 2000)
+  } catch {
+    // Clipboard unavailable; the code is still visible on screen.
+  }
+}
+
+async function handleCopyVaCode() {
+  if (!payment.value?.va_number) return
+  try {
+    await navigator.clipboard.writeText(String(payment.value.va_number).replace(/\s+/g, ''))
+    copyVaSuccess.value = true
+    setTimeout(() => {
+      copyVaSuccess.value = false
+    }, 2000)
+  } catch {
+    // Clipboard unavailable; the VA number is still visible on screen.
+  }
+}
+
+async function pollPaymentStatus() {
+  if (!orderNumber.value || isCharging.value || isPaid.value || isExpired.value) return
+
+  try {
+    const res = await api.getPaymentStatus(orderNumber.value)
+    if (res.data) {
+      applyPaymentData(res.data)
+    }
+  } catch {
+    // Keep polling; transient network errors are expected.
+  }
+}
+
+function startPolling() {
+  stopPolling()
+  statusPollTimer = setInterval(pollPaymentStatus, 5000)
+}
+
+async function handleCheckPayment() {
+  if (orderStore.isCheckingPayment || isCharging.value) return
+
+  checkMessage.value = ''
+
+  const data = await orderStore.refreshPaymentStatus()
+
+  if (data) {
+    applyPaymentData(data)
+
+    if (data.payment_status === 'paid' || data.status === 'paid') {
+      scheduleRedirect()
+      return
+    }
+
+    if (['expired', 'failed', 'cancelled'].includes(String(data.status))) {
+      localExpired.value = true
+      checkMessage.value = 'Pembayaran sudah tidak berlaku. Silakan buat pembayaran baru.'
+      return
+    }
+  }
+
+  if (isCashier.value) {
+    checkMessage.value =
+      'Pembayaran kasir belum dikonfirmasi. Tunjukkan kode pesanan ke kasir untuk menyelesaikan pembayaran.'
+  } else {
+    checkMessage.value =
+      'Status belum berubah. Jika baru saja membayar, tunggu beberapa saat — halaman ini juga memeriksa status secara otomatis.'
+  }
+}
+
+async function retryPayment() {
+  if (isCharging.value) return
+
+  localExpired.value = false
+  payment.value = null
+  qrImage.value = ''
+  chargeError.value = ''
+  checkMessage.value = ''
+
+  await ensurePayment(true)
+}
 
 function updateCountdown() {
-  const diff = orderStore.paymentDeadline - Date.now()
+  if (isCashier.value) {
+    timeLeft.value = { hours: '00', minutes: '00', seconds: '00' }
+    return
+  }
+
+  const deadline = deadlineTimestamp.value
+  if (!deadline) return
+
+  const diff = deadline - Date.now()
+
   if (diff <= 0) {
     timeLeft.value = { hours: '00', minutes: '00', seconds: '00' }
-    if (orderStore.currentOrder && orderStore.currentOrder.paymentStatus !== 'paid') {
-      orderStore.setPaymentStatusDirect('expired')
+    if (!isPaid.value) {
+      localExpired.value = true
     }
     return
   }
@@ -174,58 +457,95 @@ function updateCountdown() {
   }
 }
 
-onMounted(() => {
-  if (routeOrderId.value) {
-    orderStore.loadOrderFromHistory(routeOrderId.value)
-  } else if (!orderStore.currentOrder && orderStore.cartItems.length > 0) {
-    orderStore.createOrder()
+async function initializePaymentPage() {
+  isLoadingOrder.value = true
+  orderLoadError.value = ''
+
+  try {
+    const routeOrderNumber = String(route.params.orderId || '')
+
+    if (!routeOrderNumber && !orderStore.currentOrder?.id) {
+      orderLoadError.value =
+        'Nomor pesanan tidak ditemukan. Silakan kembali ke keranjang dan buat pesanan terlebih dahulu.'
+      return
+    }
+
+    if (
+      routeOrderNumber &&
+      (!orderStore.currentOrder || orderStore.currentOrder.id !== routeOrderNumber)
+    ) {
+      const fetched = await orderStore.fetchOrder(routeOrderNumber)
+      if (!fetched) {
+        orderLoadError.value =
+          'Pesanan tidak ditemukan di server. Periksa kembali nomor pesanan atau koneksi backend.'
+        return
+      }
+    }
+
+    if (!orderNumber.value) {
+      orderLoadError.value = 'Nomor pesanan tidak ditemukan.'
+      return
+    }
+
+    if (orderStore.currentOrder?.paymentStatus === 'paid') {
+      router.replace(`/orders/${orderNumber.value}/confirmation`)
+      return
+    }
+
+    // Ambil pembayaran yang sudah ada agar QR/VA tidak dibuat ulang saat refresh.
+    let existingPayment: any = null
+    try {
+      const statusRes = await api.getPaymentStatus(orderNumber.value)
+      existingPayment = statusRes.data
+    } catch {
+      // Belum ada pembayaran untuk pesanan ini.
+    }
+
+    if (existingPayment) {
+      applyPaymentData(existingPayment)
+
+      if (
+        existingPayment.status === 'paid' ||
+        existingPayment.payment_status === 'paid'
+      ) {
+        scheduleRedirect()
+        return
+      }
+
+      const needsChannelData =
+        existingPayment.method !== 'cashier' &&
+        !['expired', 'failed', 'cancelled'].includes(String(existingPayment.status)) &&
+        ((existingPayment.method === 'qris' && !existingPayment.qr_data) ||
+          (existingPayment.method === 'bank_transfer' && !existingPayment.va_number))
+
+      if (needsChannelData) {
+        await ensurePayment(false)
+      }
+    } else {
+      const initialMethod = orderStore.currentOrder?.paymentMethod || 'qris'
+      selectedMethod.value = initialMethod
+      orderStore.setPaymentMethod(initialMethod)
+      await ensurePayment(false)
+    }
+
+    if (!isPaid.value && !redirectScheduled) {
+      startPolling()
+    }
+  } finally {
+    isLoadingOrder.value = false
   }
+}
+
+onMounted(async () => {
+  await initializePaymentPage()
   updateCountdown()
   timerInterval = setInterval(updateCountdown, 1000)
 })
 
 onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval)
+  stopTimers()
+  if (redirectTimer) clearTimeout(redirectTimer)
 })
-
-function handleCopyPaymentCode() {
-  const code = orderStore.currentOrder?.paymentCode || 'MJK72600BA'
-  navigator.clipboard.writeText(code).then(() => {
-    copySuccess.value = true
-    setTimeout(() => {
-      copySuccess.value = false
-    }, 2000)
-  })
-}
-
-function handleSelectMethod(method: PaymentMethodType) {
-  selectedMethod.value = method
-  orderStore.setPaymentMethod(method)
-}
-
-async function handleCheckPayment() {
-  if (orderStore.isCheckingPayment) return
-
-  if (!orderStore.currentOrder) {
-    if (activeOrder.value) {
-      orderStore.currentOrder = activeOrder.value
-    } else if (orderStore.cartItems.length > 0) {
-      orderStore.createOrder()
-    }
-  }
-
-  await orderStore.simulatePaymentCheck()
-  const orderId = orderStore.currentOrder?.id || activeOrder.value?.id || 'MJK-72600-BA'
-  router.push(`/orders/${orderId}/confirmation`)
-}
-
-function handleConfirmManual() {
-  manualProofSent.value = true
-  setTimeout(() => {
-    showManualModal.value = false
-    handleCheckPayment()
-  }, 1000)
-}
 </script>
 
 <template>
@@ -235,582 +555,566 @@ function handleConfirmManual() {
     <main class="container-app payment-main">
       <AppBreadcrumb :items="breadcrumbItems" />
 
-      <!-- Top Header & Timer Banner Row -->
-      <div class="payment-header-row">
-        <!-- Left Title -->
-        <div class="title-left">
-          <h1 class="font-display payment-h1">Selesaikan Pembayaranmu</h1>
-          <p class="payment-desc">
-            Pilih metode pembayaran yang paling nyaman. Pesanan akan langsung diteruskan ke dapur setelah pembayaran terverifikasi.
-          </p>
-        </div>
-
-        <!-- Right Deadline Countdown Panel (360x115px in Figma) -->
-        <div class="deadline-panel card-surface">
-          <div class="deadline-top">
-            <span class="deadline-tag">BATAS WAKTU PEMBAYARAN</span>
-            <span class="deadline-target">{{ formattedDeadline }}</span>
-          </div>
-
-          <div class="deadline-timer-row">
-            <span class="timer-label">Selesaikan dalam</span>
-            <div class="timer-digits font-sans" aria-live="polite">
-              <span class="digit-box">{{ timeLeft.hours }}</span>
-              <span class="digit-sep">:</span>
-              <span class="digit-box">{{ timeLeft.minutes }}</span>
-              <span class="digit-sep">:</span>
-              <span class="digit-box">{{ timeLeft.seconds }}</span>
-            </div>
-          </div>
-        </div>
+      <!-- Loading state -->
+      <div v-if="isLoadingOrder" class="payment-state-card card-surface">
+        <Loader2 :size="30" class="spin-anim page-state-icon" />
+        <h2 class="state-title font-display">Memuat Detail Pesanan</h2>
+        <p class="state-desc">Menyiapkan metode pembayaran dan rincian tagihanmu...</p>
       </div>
 
-      <!-- Main Two-Column Layout (800px Left, 432px Right) -->
-      <div class="payment-grid">
-        <!-- LEFT COLUMN: Payment Methods & QRIS Box -->
-        <div class="payment-left-col">
-          <!-- 1. Select Payment Method Panel -->
-          <div class="methods-panel card-surface">
-            <div class="panel-header-row">
-              <div>
-                <h2 class="panel-title">Pilih Metode Pembayaran</h2>
-                <p class="panel-sub">
-                  Semua transaksi diproses melalui koneksi aman dan terenkripsi.
-                </p>
-              </div>
-              <div class="badge-pill badge-pill-success">
-                <ShieldCheck :size="13" />
-                <span>Pembayaran Aman</span>
-              </div>
+      <!-- Order not found -->
+      <div v-else-if="orderLoadError" class="payment-state-card card-surface">
+        <AlertTriangle :size="34" class="page-state-icon state-error-icon" />
+        <h2 class="state-title font-display">Pesanan Tidak Ditemukan</h2>
+        <p class="state-desc">{{ orderLoadError }}</p>
+        <RouterLink to="/menu" class="btn-primary state-action">Kembali ke Menu</RouterLink>
+      </div>
+
+      <template v-else>
+        <!-- Top Header & Timer Banner Row -->
+        <div class="payment-header-row">
+          <div class="title-left">
+            <h1 class="font-display payment-h1">Selesaikan Pembayaranmu</h1>
+            <p class="payment-desc">
+              Pilih metode pembayaran yang paling nyaman. Pesanan akan langsung diteruskan ke dapur setelah pembayaran terverifikasi.
+            </p>
+          </div>
+
+          <!-- Cashier info panel -->
+          <div v-if="isCashier" class="deadline-panel cashier-deadline-panel">
+            <div class="deadline-top">
+              <span class="deadline-tag">PEMBAYARAN DI KASIR</span>
+              <span class="deadline-target">Tunai / EDC</span>
             </div>
-
-            <!-- 3 Horizontal Method Cards -->
-            <div class="methods-cards-row">
-              <!-- QRIS (Active) -->
-              <div
-                class="method-card"
-                :class="{ active: selectedMethod === 'qris' }"
-                @click="handleSelectMethod('qris')"
-              >
-                <div class="method-card-top">
-                  <div class="method-icon-wrap">
-                    <QrCode :size="20" />
-                  </div>
-                  <span v-if="selectedMethod === 'qris'" class="badge-pill badge-pill-primary">TERPILIH</span>
-                </div>
-                <strong class="method-name">QRIS</strong>
-                <p class="method-desc">Scan dari semua aplikasi bank & e-wallet</p>
-              </div>
-
-              <!-- Virtual Account (Transfer Bank) -->
-              <div
-                class="method-card"
-                :class="{ active: selectedMethod === 'bank_va' }"
-                @click="handleSelectMethod('bank_va')"
-              >
-                <div class="method-card-top">
-                  <div class="method-icon-wrap">
-                    <CreditCard :size="20" />
-                  </div>
-                  <span v-if="selectedMethod === 'bank_va'" class="badge-pill badge-pill-primary">TERPILIH</span>
-                </div>
-                <strong class="method-name">Transfer Bank / VA</strong>
-                <p class="method-desc">BCA, Mandiri, BNI, BRI, dan bank lainnya</p>
-              </div>
-
-              <!-- E-Wallet -->
-              <div
-                class="method-card"
-                :class="{ active: selectedMethod === 'ewallet' }"
-                @click="handleSelectMethod('ewallet')"
-              >
-                <div class="method-card-top">
-                  <div class="method-icon-wrap">
-                    <Wallet :size="20" />
-                  </div>
-                  <span v-if="selectedMethod === 'ewallet'" class="badge-pill badge-pill-primary">TERPILIH</span>
-                  <span v-else class="badge-pill badge-pill-warning">INSTAN</span>
-                </div>
-                <strong class="method-name">Dompet Digital</strong>
-                <p class="method-desc">GoPay, OVO, DANA, dan ShopeePay</p>
-              </div>
+            <div class="deadline-timer-row">
+              <span class="timer-label">Tanpa batas waktu</span>
+              <Banknote :size="30" class="cashier-panel-icon" />
             </div>
           </div>
 
-          <!-- 2A. QRIS Main Payment Panel -->
-          <div v-if="selectedMethod === 'qris'" class="qris-panel card-surface">
-            <!-- Header -->
-            <div class="qris-header-row">
-              <div>
-                <h3 class="qris-title">Bayar dengan QRIS</h3>
-                <p class="qris-subtitle">Pindai kode QR berikut dari aplikasi pilihanmu.</p>
-              </div>
-              <span class="badge-pill badge-pill-primary">QRIS OTOMATIS</span>
+          <!-- Online payment deadline panel -->
+          <div v-else class="deadline-panel">
+            <div class="deadline-top">
+              <span class="deadline-tag">BATAS WAKTU PEMBAYARAN</span>
+              <span class="deadline-target">{{ formattedDeadline }}</span>
             </div>
 
-            <!-- QR Container & Payment Code Details -->
-            <div class="qris-content-grid">
-              <!-- Left: QR Graphic Box -->
-              <div class="qr-code-box">
-                <div class="qr-image-wrapper">
-                  <!-- Vector QR Code with MejaKu center badge -->
-                  <svg
-                    class="qr-vector"
-                    viewBox="0 0 200 200"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <!-- Background -->
-                    <rect width="200" height="200" fill="white" rx="12" />
+            <div class="deadline-timer-row">
+              <span class="timer-label">{{ isExpired ? 'Waktu habis' : 'Selesaikan dalam' }}</span>
+              <div class="timer-digits font-sans" aria-live="polite">
+                <span class="digit-box">{{ timeLeft.hours }}</span>
+                <span class="digit-sep">:</span>
+                <span class="digit-box">{{ timeLeft.minutes }}</span>
+                <span class="digit-sep">:</span>
+                <span class="digit-box">{{ timeLeft.seconds }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                    <!-- Corner Finder Patterns -->
-                    <!-- Top Left -->
-                    <rect x="16" y="16" width="48" height="48" rx="8" stroke="#1E293B" stroke-width="8" />
-                    <rect x="28" y="28" width="24" height="24" rx="4" fill="#C2410C" />
-
-                    <!-- Top Right -->
-                    <rect x="136" y="16" width="48" height="48" rx="8" stroke="#1E293B" stroke-width="8" />
-                    <rect x="148" y="28" width="24" height="24" rx="4" fill="#C2410C" />
-
-                    <!-- Bottom Left -->
-                    <rect x="16" y="136" width="48" height="48" rx="8" stroke="#1E293B" stroke-width="8" />
-                    <rect x="28" y="148" width="24" height="24" rx="4" fill="#C2410C" />
-
-                    <!-- QR Matrix Blocks -->
-                    <rect x="76" y="20" width="12" height="12" rx="2" fill="#1E293B" />
-                    <rect x="96" y="20" width="12" height="12" rx="2" fill="#1E293B" />
-                    <rect x="116" y="20" width="12" height="12" rx="2" fill="#1E293B" />
-                    <rect x="76" y="44" width="24" height="12" rx="2" fill="#1E293B" />
-                    <rect x="108" y="44" width="16" height="12" rx="2" fill="#1E293B" />
-
-                    <rect x="20" y="76" width="12" height="24" rx="2" fill="#1E293B" />
-                    <rect x="44" y="76" width="16" height="12" rx="2" fill="#1E293B" />
-                    <rect x="44" y="96" width="12" height="24" rx="2" fill="#1E293B" />
-                    <rect x="20" y="108" width="16" height="12" rx="2" fill="#1E293B" />
-
-                    <!-- Center Logo Badge -->
-                    <rect x="76" y="76" width="48" height="48" rx="10" fill="#C2410C" />
-                    <text x="100" y="108" font-family="'Lobster Two', cursive" font-size="28" font-weight="bold" fill="white" text-anchor="middle">M</text>
-
-                    <rect x="140" y="76" width="16" height="12" rx="2" fill="#1E293B" />
-                    <rect x="164" y="76" width="16" height="24" rx="2" fill="#1E293B" />
-                    <rect x="140" y="96" width="16" height="24" rx="2" fill="#1E293B" />
-
-                    <rect x="76" y="136" width="12" height="16" rx="2" fill="#1E293B" />
-                    <rect x="96" y="136" width="24" height="12" rx="2" fill="#1E293B" />
-                    <rect x="76" y="160" width="24" height="12" rx="2" fill="#1E293B" />
-                    <rect x="108" y="160" width="12" height="20" rx="2" fill="#1E293B" />
-
-                    <rect x="136" y="136" width="12" height="12" rx="2" fill="#1E293B" />
-                    <rect x="156" y="136" width="24" height="12" rx="2" fill="#1E293B" />
-                    <rect x="136" y="156" width="24" height="12" rx="2" fill="#1E293B" />
-                    <rect x="168" y="156" width="12" height="24" rx="2" fill="#1E293B" />
-                  </svg>
+        <!-- Main Two-Column Layout -->
+        <div class="payment-grid">
+          <!-- LEFT COLUMN: Payment Methods & Active Panel -->
+          <div class="payment-left-col">
+            <!-- Select Payment Method Panel -->
+            <div class="methods-panel card-surface">
+              <div class="panel-header-row">
+                <div>
+                  <h2 class="panel-title">Pilih Metode Pembayaran</h2>
+                  <p class="panel-sub">
+                    QRIS dan VA diproses langsung melalui Midtrans. Pembayaran kasir dikonfirmasi oleh petugas.
+                  </p>
                 </div>
-                <span class="qr-caption">QR berlaku hingga {{ formattedDeadlineShort }}</span>
+                <div class="badge-pill badge-pill-success">
+                  <ShieldCheck :size="13" />
+                  <span>Pembayaran Aman</span>
+                </div>
               </div>
 
-              <!-- Right: Price & Payment Code Box -->
-              <div class="qris-meta-box">
-                <div class="qris-nominal-group">
-                  <span class="nominal-label">Total Pembayaran</span>
-                  <div class="nominal-value font-sans">
-                    {{ formatRupiah(orderStore.pricing.total) }}
+              <div class="methods-cards-row">
+                <!-- QRIS -->
+                <button
+                  type="button"
+                  class="method-card"
+                  :class="{ active: selectedMethod === 'qris' }"
+                  @click="handleSelectMethod('qris')"
+                >
+                  <div class="method-card-top">
+                    <div class="method-icon-wrap">
+                      <QrCode :size="20" />
+                    </div>
+                    <span v-if="selectedMethod === 'qris'" class="badge-pill badge-pill-primary">TERPILIH</span>
                   </div>
-                  <span class="nominal-hint">
-                    Pastikan nominal yang tampil di aplikasi sama persis.
+                  <strong class="method-name">QRIS</strong>
+                  <p class="method-desc">Scan dari semua aplikasi bank & e-wallet</p>
+                </button>
+
+                <!-- Virtual Account -->
+                <button
+                  type="button"
+                  class="method-card"
+                  :class="{ active: selectedMethod === 'bank_va' }"
+                  @click="handleSelectMethod('bank_va')"
+                >
+                  <div class="method-card-top">
+                    <div class="method-icon-wrap">
+                      <CreditCard :size="20" />
+                    </div>
+                    <span v-if="selectedMethod === 'bank_va'" class="badge-pill badge-pill-primary">TERPILIH</span>
+                  </div>
+                  <strong class="method-name">Transfer Bank / VA</strong>
+                  <p class="method-desc">BCA, BRI, BNI, dan Permata</p>
+                </button>
+
+                <!-- Kasir -->
+                <button
+                  type="button"
+                  class="method-card"
+                  :class="{ active: selectedMethod === 'cashier' }"
+                  @click="handleSelectMethod('cashier')"
+                >
+                  <div class="method-card-top">
+                    <div class="method-icon-wrap">
+                      <Banknote :size="20" />
+                    </div>
+                    <span v-if="selectedMethod === 'cashier'" class="badge-pill badge-pill-primary">TERPILIH</span>
+                    <span v-else class="badge-pill badge-pill-warning">KASIR</span>
+                  </div>
+                  <strong class="method-name">Kasir</strong>
+                  <p class="method-desc">Bayar tunai atau EDC langsung di kasir</p>
+                </button>
+              </div>
+            </div>
+
+            <!-- QRIS Panel -->
+            <div v-if="selectedMethod === 'qris'" class="qris-panel card-surface">
+              <div class="qris-header-row">
+                <div>
+                  <h3 class="qris-title">Bayar dengan QRIS</h3>
+                  <p class="qris-subtitle">Pindai kode QR berikut dari aplikasi pilihanmu.</p>
+                </div>
+                <span class="badge-pill badge-pill-primary">QRIS OTOMATIS</span>
+              </div>
+
+              <div class="qris-content-grid">
+                <div class="qr-code-box">
+                  <div class="qr-image-wrapper">
+                    <img
+                      v-if="qrImage && !isExpired"
+                      :src="qrImage"
+                      alt="QRIS Pembayaran MejaKu"
+                      class="qr-real-img"
+                    />
+                    <div v-else-if="isCharging" class="qr-loading-box">
+                      <Loader2 :size="34" class="spin-anim" />
+                      <span>Menyiapkan QRIS...</span>
+                    </div>
+                    <div v-else class="qr-loading-box qr-error-box">
+                      <AlertTriangle :size="30" />
+                      <span>
+                        {{ isExpired ? 'QR pembayaran sudah kedaluwarsa.' : chargeError || 'QRIS belum tersedia.' }}
+                      </span>
+                      <button
+                        type="button"
+                        class="btn-retry-camera"
+                        @click="isExpired ? retryPayment() : ensurePayment(true)"
+                      >
+                        <RefreshCw :size="14" />
+                        {{ isExpired ? 'Buat QR Baru' : 'Coba Lagi' }}
+                      </button>
+                    </div>
+                  </div>
+                  <span class="qr-caption">
+                    {{ isExpired ? 'QR tidak berlaku lagi' : `QR berlaku hingga ${formattedDeadlineShort}` }}
                   </span>
                 </div>
 
-                <!-- Payment Code Bar with Copy -->
-                <div class="payment-code-bar">
-                  <div class="code-info">
-                    <span class="code-label">KODE PEMBAYARAN</span>
-                    <strong class="code-val">{{ orderStore.currentOrder?.paymentCode || 'MJK72600BA' }}</strong>
+                <div class="qris-meta-box">
+                  <div class="qris-nominal-group">
+                    <span class="nominal-label">Total Pembayaran</span>
+                    <div class="nominal-value font-sans">
+                      {{ formatRupiah(orderPricing.total) }}
+                    </div>
+                    <span class="nominal-hint">
+                      Pastikan nominal yang tampil di aplikasi sama persis.
+                    </span>
                   </div>
+
+                  <div class="payment-code-bar">
+                    <div class="code-info">
+                      <span class="code-label">KODE PEMBAYARAN</span>
+                      <strong class="code-val">{{ displayedPaymentCode }}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn-copy"
+                      :class="{ 'btn-copied': copySuccess }"
+                      @click="handleCopyPaymentCode"
+                    >
+                      <Check v-if="copySuccess" :size="15" />
+                      <Copy v-else :size="15" />
+                      <span>{{ copySuccess ? 'Tersalin' : 'Salin' }}</span>
+                    </button>
+                  </div>
+
+                  <div class="supported-apps-row">
+                    <span class="apps-label">DAPAT DIBAYAR MELALUI:</span>
+                    <div class="apps-chips">
+                      <span class="app-chip">BCA mobile</span>
+                      <span class="app-chip">Livin' by Mandiri</span>
+                      <span class="app-chip">BRImo</span>
+                      <span class="app-chip">GoPay</span>
+                      <span class="app-chip">DANA</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="payment-steps-warm">
+                <h4 class="warm-title">Langkah Pembayaran</h4>
+                <ol class="warm-steps-list">
+                  <li>
+                    <strong>Buka aplikasi bank atau dompet digital</strong>
+                    <span>Pilih menu Bayar, Scan, atau QRIS pada halaman utama aplikasi.</span>
+                  </li>
+                  <li>
+                    <strong>Pindai kode QR dan periksa detail</strong>
+                    <span>Pastikan merchant MejaKu dan total {{ formatRupiah(orderPricing.total) }} sesuai.</span>
+                  </li>
+                  <li>
+                    <strong>Konfirmasi pembayaran</strong>
+                    <span>Masukkan PIN. Status halaman ini diperbarui otomatis setelah pembayaran diterima.</span>
+                  </li>
+                </ol>
+              </div>
+
+              <div class="verify-security-note">
+                <CheckCircle2 :size="18" class="verify-icon" />
+                <span>
+                  Pembayaran diverifikasi otomatis. MejaKu tidak pernah meminta PIN, OTP, atau kata sandi akunmu.
+                </span>
+              </div>
+
+              <div style="margin-top: 20px;">
+                <HelpCallout
+                  title="Ada kendala saat melakukan pembayaran?"
+                  description="Tim kami siap membantu konfirmasi transaksi tanpa meminta data rahasia perbankan Anda."
+                  action-text="Chat Bantuan"
+                />
+              </div>
+            </div>
+
+            <!-- Virtual Account Panel -->
+            <div v-else-if="selectedMethod === 'bank_va'" class="va-panel card-surface">
+              <div class="qris-header-row">
+                <div>
+                  <h3 class="qris-title">Transfer Virtual Account (VA)</h3>
+                  <p class="qris-subtitle">Pilih bank tujuan untuk mendapatkan nomor Virtual Account unik.</p>
+                </div>
+                <span class="badge-pill badge-pill-success">VERIFIKASI OTOMATIS</span>
+              </div>
+
+              <div class="bank-selector-group">
+                <label class="bank-selector-label">Pilih Bank Pembayaran:</label>
+                <div class="bank-chips-grid">
                   <button
+                    v-for="bank in bankList"
+                    :key="bank.id"
                     type="button"
-                    class="btn-copy"
-                    :class="{ 'btn-copied': copySuccess }"
-                    @click="handleCopyPaymentCode"
+                    class="bank-chip-btn"
+                    :class="{ active: selectedBankInfo.id === bank.id }"
+                    :disabled="isCharging"
+                    @click="handleSelectBank(bank.id)"
                   >
-                    <Check v-if="copySuccess" :size="15" />
-                    <Copy v-else :size="15" />
-                    <span>{{ copySuccess ? 'Tersalin' : 'Salin' }}</span>
+                    <span class="bank-logo-badge">{{ bank.short }}</span>
+                    <span class="bank-name-text">{{ bank.name }}</span>
+                    <Check
+                      v-if="selectedBankInfo.id === bank.id && payment?.va_number && !isCharging"
+                      :size="16"
+                      class="bank-check"
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="isCharging" class="va-loading-inline">
+                <Loader2 :size="18" class="spin-anim" />
+                <span>Membuat nomor Virtual Account {{ selectedBankInfo.short }}...</span>
+              </div>
+
+              <div v-else-if="chargeError && !payment?.va_number" class="qr-loading-box qr-error-box va-error-box">
+                <AlertTriangle :size="28" />
+                <span>{{ chargeError }}</span>
+                <button type="button" class="btn-retry-camera" @click="ensurePayment(true)">
+                  <RefreshCw :size="14" />
+                  Coba Lagi
+                </button>
+              </div>
+
+              <template v-else-if="payment?.va_number">
+                <div class="va-display-card">
+                  <div class="va-card-header">
+                    <div>
+                      <span class="va-card-label">Nomor Virtual Account {{ selectedBankInfo.short }}</span>
+                      <span class="va-merchant-name">Penerima: MejaKu</span>
+                    </div>
+                    <span class="badge-pill badge-pill-primary">{{ selectedBankInfo.short }}</span>
+                  </div>
+                  <div class="va-number-row">
+                    <span class="va-number-text font-sans">{{ vaNumber }}</span>
+                    <button
+                      type="button"
+                      class="btn-copy"
+                      :class="{ 'btn-copied': copyVaSuccess }"
+                      @click="handleCopyVaCode"
+                    >
+                      <Check v-if="copyVaSuccess" :size="15" />
+                      <Copy v-else :size="15" />
+                      <span>{{ copyVaSuccess ? 'Tersalin' : 'Salin Nomor' }}</span>
+                    </button>
+                  </div>
+                  <div class="va-card-footer">
+                    <div class="va-total-label">Total Tagihan Transfer:</div>
+                    <div class="va-total-amount font-sans">{{ formatRupiah(orderPricing.total) }}</div>
+                  </div>
+                </div>
+
+                <div class="payment-steps-warm">
+                  <h4 class="warm-title">Panduan Transfer via {{ selectedBankInfo.short }} Mobile / ATM</h4>
+                  <ol class="warm-steps-list">
+                    <li>
+                      <strong>Login ke aplikasi {{ selectedBankInfo.short }} Mobile atau masukkan kartu ke ATM</strong>
+                      <span>Pilih menu Transfer &gt; Virtual Account / Pembayaran Tagihan.</span>
+                    </li>
+                    <li>
+                      <strong>Masukkan nomor Virtual Account</strong>
+                      <span>Ketik <strong>{{ payment.va_number }}</strong> dan pastikan nama penerima <strong>MejaKu</strong>.</span>
+                    </li>
+                    <li>
+                      <strong>Periksa total nominal dan konfirmasi</strong>
+                      <span>Pastikan jumlah tagihan tepat {{ formatRupiah(orderPricing.total) }}, lalu masukkan PIN transaksi Anda.</span>
+                    </li>
+                  </ol>
+                </div>
+
+                <div class="verify-security-note">
+                  <CheckCircle2 :size="18" class="verify-icon" />
+                  <span>
+                    Nomor Virtual Account berlaku hingga {{ formattedDeadlineShort }}. Status diperbarui otomatis setelah transfer diterima.
+                  </span>
+                </div>
+              </template>
+
+              <div v-else class="qr-loading-box va-error-box">
+                <AlertTriangle :size="28" />
+                <span>Nomor Virtual Account belum tersedia.</span>
+                <button type="button" class="btn-retry-camera" @click="ensurePayment(true)">
+                  <RefreshCw :size="14" />
+                  Buat Nomor VA
+                </button>
+              </div>
+            </div>
+
+            <!-- Cashier Panel -->
+            <div v-else-if="selectedMethod === 'cashier'" class="cashier-panel card-surface">
+              <div class="qris-header-row">
+                <div>
+                  <h3 class="qris-title">Bayar di Kasir</h3>
+                  <p class="qris-subtitle">Tunjukkan kode pesanan ini ke kasir, lalu bayar tunai atau dengan kartu EDC.</p>
+                </div>
+                <span class="badge-pill badge-pill-warning">KONFIRMASI KASIR</span>
+              </div>
+
+              <div v-if="isCharging" class="va-loading-inline">
+                <Loader2 :size="18" class="spin-anim" />
+                <span>Menyiapkan tagihan kasir...</span>
+              </div>
+
+              <template v-else>
+                <div class="cashier-display-card">
+                  <div class="cashier-icon-wrap">
+                    <Banknote :size="30" />
+                  </div>
+                  <div class="cashier-display-body">
+                    <span class="cashier-display-label">KODE PESANAN</span>
+                    <div class="cashier-code-row">
+                      <strong class="cashier-code-val font-sans">{{ displayedPaymentCode }}</strong>
+                      <button
+                        type="button"
+                        class="btn-copy"
+                        :class="{ 'btn-copied': copySuccess }"
+                        @click="handleCopyPaymentCode"
+                      >
+                        <Check v-if="copySuccess" :size="15" />
+                        <Copy v-else :size="15" />
+                        <span>{{ copySuccess ? 'Tersalin' : 'Salin' }}</span>
+                      </button>
+                    </div>
+                    <span class="cashier-hint">Sebutkan kode ini atau tunjukkan halaman ini ke kasir.</span>
+                  </div>
+                  <div class="cashier-total">
+                    <span>Total Tagihan</span>
+                    <strong class="font-sans">{{ formatRupiah(orderPricing.total) }}</strong>
+                  </div>
+                </div>
+
+                <div v-if="chargeError" class="qr-loading-box qr-error-box va-error-box">
+                  <AlertTriangle :size="26" />
+                  <span>{{ chargeError }}</span>
+                  <button type="button" class="btn-retry-camera" @click="ensurePayment(true)">
+                    <RefreshCw :size="14" />
+                    Coba Lagi
                   </button>
                 </div>
 
-                <!-- Supported Apps Badges -->
-                <div class="supported-apps-row">
-                  <span class="apps-label">DAPAT DIBAYAR MELALUI:</span>
-                  <div class="apps-chips">
-                    <span class="app-chip">BCA mobile</span>
-                    <span class="app-chip">Livin' Mandiri</span>
-                    <span class="app-chip">BRImo</span>
-                    <span class="app-chip">GoPay</span>
-                    <span class="app-chip">DANA</span>
+                <div class="payment-steps-warm">
+                  <h4 class="warm-title">Langkah Pembayaran di Kasir</h4>
+                  <ol class="warm-steps-list">
+                    <li>
+                      <strong>Datang ke meja kasir MejaKu</strong>
+                      <span>Tunjukkan kode pesanan atau halaman pembayaran ini kepada kasir.</span>
+                    </li>
+                    <li>
+                      <strong>Bayar dengan tunai atau kartu EDC</strong>
+                      <span>Kasir akan memeriksa total tagihan sebesar {{ formatRupiah(orderPricing.total) }}.</span>
+                    </li>
+                    <li>
+                      <strong>Tunggu konfirmasi kasir</strong>
+                      <span>Status akan berubah menjadi lunas setelah kasir menandai pembayaran dari dashboard.</span>
+                    </li>
+                  </ol>
+                </div>
+
+                <div class="verify-security-note cashier-security-note">
+                  <CheckCircle2 :size="18" class="verify-icon" />
+                  <span>
+                    Pesanan mulai disiapkan setelah kasir mengonfirmasi pembayaran. Tidak ada biaya tambahan untuk pembayaran di kasir.
+                  </span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Order Summary & Actions -->
+          <aside class="payment-right-col">
+            <div class="summary-card card-surface">
+              <div class="summary-card-header">
+                <h2 class="font-display summary-title">Ringkasan Pesanan</h2>
+                <span class="badge-pill badge-pill-primary">{{ orderItems.length }} Menu</span>
+              </div>
+
+              <div class="order-id-badge-row">
+                <strong class="order-id-val">{{ currentOrderNumber }}</strong>
+                <span class="badge-pill badge-pill-success">Meja {{ orderTable.tableNumber }}</span>
+              </div>
+
+              <div class="summary-dishes-list">
+                <div
+                  v-for="item in orderItems"
+                  :key="item.cartId || item.itemId"
+                  class="summary-dish-card"
+                >
+                  <div class="dish-title-row">
+                    <span class="dish-merchant">{{ item.merchant || 'MejaKu' }}</span>
+                    <strong class="dish-name">{{ item.name }}</strong>
+                  </div>
+                  <div class="dish-options-recap">
+                    <span>{{ item.quantity }} × {{ item.portion?.name || 'Porsi Standar' }}</span>
+                    <span v-if="item.spice"> · {{ item.spice.name }}</span>
+                    <span v-if="item.addons && item.addons.length > 0">
+                      · {{ item.addons.map(a => a.name).join(', ') }}
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Warm Instructions Panel (3 Steps) -->
-            <div class="payment-steps-warm">
-              <h4 class="warm-title">Langkah Pembayaran</h4>
-              <ol class="warm-steps-list">
-                <li>
-                  <strong>Buka aplikasi bank atau dompet digital</strong>
-                  <span>Pilih menu Bayar, Scan, atau QRIS pada halaman utama aplikasi.</span>
-                </li>
-                <li>
-                  <strong>Pindai kode QR dan periksa detail</strong>
-                  <span>Pastikan merchant MejaKu dan total {{ formatRupiah(orderStore.pricing.total) }} sesuai.</span>
-                </li>
-                <li>
-                  <strong>Konfirmasi pembayaran</strong>
-                  <span>Masukkan PIN, kembali ke halaman ini, lalu cek pembayaran.</span>
-                </li>
-              </ol>
-            </div>
+              <PriceBreakdown :pricing="orderPricing" mode="payment" />
 
-            <!-- Green Auto Verify Notice -->
-            <div class="verify-security-note">
-              <CheckCircle2 :size="18" class="verify-icon" />
-              <span>
-                Pembayaran diverifikasi otomatis. MejaKu tidak pernah meminta PIN, OTP, atau kata sandi akunmu.
-              </span>
-            </div>
-
-            <!-- Help Callout -->
-            <div style="margin-top: 20px;">
-              <HelpCallout
-                title="Ada kendala saat melakukan pembayaran?"
-                description="Tim kami siap membantu konfirmasi transaksi tanpa meminta data rahasia perbankan Anda."
-                action-text="Chat Bantuan"
-              />
-            </div>
-          </div>
-
-          <!-- 2B. Virtual Account (Transfer Bank) Main Panel -->
-          <div v-else-if="selectedMethod === 'bank_va'" class="va-panel card-surface">
-            <!-- Header -->
-            <div class="qris-header-row">
-              <div>
-                <h3 class="qris-title">Transfer Virtual Account (VA)</h3>
-                <p class="qris-subtitle">Pilih bank tujuan untuk mendapatkan nomor Virtual Account unik.</p>
-              </div>
-              <span class="badge-pill badge-pill-success">VERIFIKASI OTOMATIS</span>
-            </div>
-
-            <!-- Bank Selection Chips -->
-            <div class="bank-selector-group">
-              <label class="bank-selector-label">Pilih Bank Pembayaran:</label>
-              <div class="bank-chips-grid">
-                <button
-                  v-for="bank in bankList"
-                  :key="bank.id"
-                  type="button"
-                  class="bank-chip-btn"
-                  :class="{ active: selectedBank === bank.id }"
-                  @click="selectedBank = bank.id"
-                >
-                  <span class="bank-logo-badge">{{ bank.logo }}</span>
-                  <span class="bank-name-text">{{ bank.name }}</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- VA Display Card -->
-            <div class="va-display-card">
-              <div class="va-card-header">
-                <div>
-                  <span class="va-card-label">Nomor Virtual Account {{ currentBank.logo }}</span>
-                  <span class="va-merchant-name">Penerima: MejaKu Foodcourt Indonesia</span>
-                </div>
-                <span class="badge-pill badge-pill-primary">{{ currentBank.logo }}</span>
-              </div>
-              <div class="va-number-row">
-                <span class="va-number-text font-sans">{{ currentBank.code }}</span>
-                <button
-                  type="button"
-                  class="btn-copy"
-                  :class="{ 'btn-copied': copyVaSuccess }"
-                  @click="handleCopyVaCode"
-                >
-                  <Check v-if="copyVaSuccess" :size="15" />
-                  <Copy v-else :size="15" />
-                  <span>{{ copyVaSuccess ? 'Tersalin' : 'Salin Nomor' }}</span>
-                </button>
-              </div>
-              <div class="va-card-footer">
-                <div class="va-total-label">Total Tagihan Transfer:</div>
-                <div class="va-total-amount font-sans">{{ formatRupiah(orderStore.pricing.total) }}</div>
-              </div>
-            </div>
-
-            <!-- Step by step instructions -->
-            <div class="payment-steps-warm">
-              <h4 class="warm-title">Panduan Transfer via {{ currentBank.logo }} Mobile / ATM</h4>
-              <ol class="warm-steps-list">
-                <li>
-                  <strong>Login ke aplikasi {{ currentBank.logo }} Mobile atau masukkan kartu ke ATM</strong>
-                  <span>Pilih menu Transfer > Virtual Account / Pembayaran Tagihan.</span>
-                </li>
-                <li>
-                  <strong>Masukkan nomor Virtual Account</strong>
-                  <span>Ketik <strong>{{ currentBank.code.replace(/\s+/g, '') }}</strong> dan pastikan nama penerima <strong>MejaKu Foodcourt Indonesia</strong>.</span>
-                </li>
-                <li>
-                  <strong>Periksa total nominal dan konfirmasi</strong>
-                  <span>Pastikan jumlah tagihan tepat {{ formatRupiah(orderStore.pricing.total) }}, lalu masukkan PIN transaksi Anda.</span>
-                </li>
-              </ol>
-            </div>
-
-            <!-- Green Auto Verify Notice -->
-            <div class="verify-security-note">
-              <CheckCircle2 :size="18" class="verify-icon" />
-              <span>
-                Nomor Virtual Account aktif selama 18 menit. Setelah transfer berhasil, klik tombol verifikasi di bawah.
-              </span>
-            </div>
-
-            <!-- Direct VA Pay Action -->
-            <button
-              type="button"
-              class="btn-primary btn-check-payment"
-              style="margin-top: 20px; width: 100%;"
-              :disabled="orderStore.isCheckingPayment"
-              @click="handleCheckPayment"
-            >
-              <RefreshCw :size="18" :class="{ 'spin-anim': orderStore.isCheckingPayment }" />
-              <span>
-                {{ orderStore.isCheckingPayment ? 'Memverifikasi Transfer VA...' : 'Saya Sudah Transfer · Cek Status VA' }}
-              </span>
-            </button>
-          </div>
-
-          <!-- 2C. E-Wallet Main Panel -->
-          <div v-else-if="selectedMethod === 'ewallet'" class="ewallet-panel card-surface">
-            <!-- Header -->
-            <div class="qris-header-row">
-              <div>
-                <h3 class="qris-title">Bayar dengan Dompet Digital</h3>
-                <p class="qris-subtitle">Pilih dompet digital untuk pembayaran instan sekali klik.</p>
-              </div>
-              <span class="badge-pill badge-pill-warning">INSTAN & CEPAT</span>
-            </div>
-
-            <!-- E-Wallet Selector Chips -->
-            <div class="ewallet-selector-group">
-              <label class="bank-selector-label">Pilih Dompet Digital:</label>
-              <div class="ewallet-chips-grid">
-                <button
-                  v-for="wallet in ewalletList"
-                  :key="wallet.id"
-                  type="button"
-                  class="ewallet-chip-btn"
-                  :class="{ active: selectedEwallet === wallet.id }"
-                  @click="selectedEwallet = wallet.id"
-                >
-                  <div class="ewallet-dot" :style="{ background: wallet.iconColor }"></div>
-                  <span class="ewallet-name-text">{{ wallet.name }}</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- E-Wallet Input Box -->
-            <div class="ewallet-display-card">
-              <div class="ewallet-phone-group">
-                <label class="ewallet-input-label">Nomor Handphone Akun {{ ewalletList.find(w => w.id === selectedEwallet)?.name }}:</label>
-                <div class="ewallet-input-wrap">
-                  <Smartphone :size="18" class="ewallet-input-icon" />
-                  <input
-                    v-model="ewalletPhone"
-                    type="tel"
-                    class="ewallet-tel-input"
-                    placeholder="08xxxxxxxxxx"
-                  />
-                </div>
-                <span class="ewallet-input-hint">Notifikasi konfirmasi bayar akan dikirim ke aplikasi {{ ewalletList.find(w => w.id === selectedEwallet)?.name }} Anda.</span>
+              <div class="waiting-notice-wrap">
+                <NoticeBox
+                  v-if="isCashier"
+                  variant="warm"
+                  icon-type="info"
+                  title="Menunggu Konfirmasi Kasir"
+                  message="Status akan berubah otomatis setelah kasir menandai pembayaranmu lunas."
+                />
+                <NoticeBox
+                  v-else-if="isExpired"
+                  variant="warning"
+                  icon-type="warning"
+                  title="Pembayaran Kedaluwarsa"
+                  message="Waktu pembayaran sudah habis. Buat pembayaran baru untuk melanjutkan pesanan."
+                />
+                <NoticeBox
+                  v-else
+                  variant="warning"
+                  icon-type="clock"
+                  title="Menunggu Pembayaran"
+                  message="Status akan diperbarui otomatis setelah transaksi berhasil diverifikasi gateway."
+                />
               </div>
 
-              <div class="va-card-footer" style="margin-top: 16px; border-top: 1px dashed var(--border); padding-top: 14px;">
-                <div class="va-total-label">Total Tagihan:</div>
-                <div class="va-total-amount font-sans">{{ formatRupiah(orderStore.pricing.total) }}</div>
-              </div>
-            </div>
+              <p v-if="checkMessage" class="status-feedback">{{ checkMessage }}</p>
 
-            <!-- Steps Instructions -->
-            <div class="payment-steps-warm">
-              <h4 class="warm-title">Cara Pembayaran {{ ewalletList.find(w => w.id === selectedEwallet)?.name }}</h4>
-              <ol class="warm-steps-list">
-                <li>
-                  <strong>Klik tombol bayar di bawah</strong>
-                  <span>Permintaan pembayaran akan diproses otomatis oleh gateway pembayaran MejaKu.</span>
-                </li>
-                <li>
-                  <strong>Buka notifikasi di smartphone</strong>
-                  <span>Periksa rincian pesanan senilai {{ formatRupiah(orderStore.pricing.total) }} di aplikasi {{ ewalletList.find(w => w.id === selectedEwallet)?.name }}.</span>
-                </li>
-                <li>
-                  <strong>Masukkan PIN akun</strong>
-                  <span>Setelah pembayaran sukses, halaman ini akan otomatis dialihkan ke status pesanan.</span>
-                </li>
-              </ol>
-            </div>
-
-            <!-- Direct E-Wallet Pay Action -->
-            <button
-              type="button"
-              class="btn-primary btn-check-payment"
-              style="margin-top: 20px; width: 100%;"
-              :disabled="orderStore.isCheckingPayment"
-              @click="handleCheckPayment"
-            >
-              <RefreshCw :size="18" :class="{ 'spin-anim': orderStore.isCheckingPayment }" />
-              <span>
-                {{ orderStore.isCheckingPayment ? 'Memproses E-Wallet...' : `Buka ${ewalletList.find(w => w.id === selectedEwallet)?.name} & Bayar Sekarang` }}
-              </span>
-            </button>
-          </div>
-        </div>
-
-        <!-- RIGHT COLUMN: Order Summary & Actions -->
-        <aside class="payment-right-col">
-          <div class="summary-card card-surface">
-            <!-- Header -->
-            <div class="summary-card-header">
-              <h2 class="font-display summary-title">Ringkasan Pesanan</h2>
-              <span class="badge-pill badge-pill-primary">{{ orderItems.length }} Menu</span>
-            </div>
-
-            <!-- Order Number & Table Badge -->
-            <div class="order-id-badge-row">
-              <strong class="order-id-val">{{ orderStore.currentOrder?.orderNumber || '#MJK-72600-BA' }}</strong>
-              <span class="badge-pill badge-pill-success">Meja {{ orderStore.table.tableNumber }}</span>
-            </div>
-
-            <!-- Product config recap (all items in order) -->
-            <div class="summary-dishes-list">
-              <div
-                v-for="item in orderItems"
-                :key="item.cartId || item.itemId"
-                class="summary-dish-card"
+              <button
+                v-if="isExpired"
+                type="button"
+                class="btn-primary btn-check-payment"
+                :disabled="isCharging"
+                @click="retryPayment"
               >
-                <div class="dish-title-row">
-                  <span class="dish-merchant">{{ item.merchant || 'Warung Bali Dwi' }}</span>
-                  <strong class="dish-name">{{ item.name }}</strong>
-                </div>
-                <div class="dish-options-recap">
-                  <span>{{ item.quantity }} × {{ item.portion?.name || 'Porsi Standar' }}</span>
-                  <span v-if="item.spice"> · {{ item.spice.name }}</span>
-                  <span v-if="item.addons && item.addons.length > 0">
-                    · {{ item.addons.map(a => a.name).join(', ') }}
-                  </span>
-                </div>
+                <RefreshCw :size="18" :class="{ 'spin-anim': isCharging }" />
+                <span>{{ isCharging ? 'Membuat Pembayaran Baru...' : 'Buat Pembayaran Baru' }}</span>
+              </button>
+
+              <button
+                v-else
+                type="button"
+                class="btn-primary btn-check-payment"
+                :disabled="orderStore.isCheckingPayment || isCharging"
+                @click="handleCheckPayment"
+              >
+                <RefreshCw
+                  :size="18"
+                  :class="{ 'spin-anim': orderStore.isCheckingPayment }"
+                />
+                <span>
+                  {{
+                    orderStore.isCheckingPayment
+                      ? 'Memeriksa Status...'
+                      : isCashier
+                        ? 'Cek Konfirmasi Kasir'
+                        : 'Saya Sudah Bayar · Cek Status'
+                  }}
+                </span>
+              </button>
+
+              <p class="keep-open-warning">
+                {{
+                  isCashier
+                    ? 'Simpan halaman ini sampai kasir mengonfirmasi pembayaranmu.'
+                    : 'Jangan tutup halaman ini sebelum status pembayaran berhasil dikonfirmasi.'
+                }}
+              </p>
+
+              <div class="saved-notice-wrap">
+                <NoticeBox
+                  variant="warm"
+                  icon-type="info"
+                  title="Pesananmu tetap tersimpan"
+                  message="Jika transaksi tertunda, kamu bisa membuka kembali pesanan ini dari riwayat MejaKu."
+                />
               </div>
             </div>
-
-            <!-- Price Breakdown -->
-            <PriceBreakdown :pricing="paymentPricing" mode="payment" />
-
-            <!-- Waiting Notice Box -->
-            <div class="waiting-notice-wrap">
-              <NoticeBox
-                variant="warning"
-                icon-type="clock"
-                title="Menunggu Pembayaran"
-                message="Status akan diperbarui otomatis setelah transaksi berhasil diverifikasi gateway."
-              />
-            </div>
-
-            <!-- Action: Saya Sudah Bayar -->
-            <button
-              type="button"
-              class="btn-primary btn-check-payment"
-              :disabled="orderStore.isCheckingPayment"
-              @click="handleCheckPayment"
-            >
-              <RefreshCw
-                :size="18"
-                :class="{ 'spin-anim': orderStore.isCheckingPayment }"
-              />
-              <span>
-                {{ orderStore.isCheckingPayment ? 'Memeriksa Status Transaksi...' : 'Saya Sudah Bayar · Cek Pembayaran' }}
-              </span>
-            </button>
-
-            <!-- Action: Konfirmasi Manual -->
-            <button
-              type="button"
-              class="btn-outline btn-manual-confirm"
-              @click="showManualModal = true"
-            >
-              <span>Konfirmasi Pembayaran Manual</span>
-            </button>
-
-            <!-- Warning Subtext -->
-            <p class="keep-open-warning">
-              Jangan tutup halaman ini sebelum status pembayaran berhasil dikonfirmasi.
-            </p>
-
-            <!-- Saved Notice -->
-            <div class="saved-notice-wrap">
-              <NoticeBox
-                variant="warm"
-                icon-type="info"
-                title="Pesananmu tetap tersimpan"
-                message="Jika transaksi tertunda, kamu bisa membuka kembali pesanan ini dari riwayat MejaKu."
-              />
-            </div>
-          </div>
-        </aside>
-      </div>
+          </aside>
+        </div>
+      </template>
     </main>
 
     <AppFooter :is-payment-screen="true" />
-
-
-    <!-- Manual Confirmation Modal -->
-    <Teleport to="body">
-      <div v-if="showManualModal" class="modal-backdrop" @click.self="showManualModal = false">
-        <div class="modal-card" role="dialog" aria-modal="true">
-          <div class="modal-header">
-            <h3 class="font-display modal-title">Konfirmasi Manual</h3>
-            <button type="button" class="close-btn" @click="showManualModal = false">
-              <X :size="20" />
-            </button>
-          </div>
-          <div class="modal-body">
-            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
-              Jika Anda telah mentransfer namun status belum terbarui otomatis, masukkan 4 digit terakhir nomor rekening atau ID referensi bukti transfer Anda:
-            </p>
-            <input
-              type="text"
-              placeholder="Contoh: REF9827391"
-              class="promo-input"
-              style="width: 100%; margin-bottom: 12px; padding: 12px;"
-            />
-            <span style="font-size: 12px; color: var(--text-muted);">
-              Sistem akan memverifikasi mutasi bank dalam 1-2 menit.
-            </span>
-          </div>
-          <div class="modal-footer" style="margin-top: 20px;">
-            <button
-              type="button"
-              class="btn-primary"
-              style="width: 100%"
-              @click="handleConfirmManual"
-            >
-              Kirim & Verifikasi
-            </button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
+
 
 <style scoped>
 .payment-page {
@@ -822,6 +1126,45 @@ function handleConfirmManual() {
 
 .payment-main {
   padding-bottom: 96px;
+}
+
+.payment-state-card {
+  max-width: 520px;
+  margin: 48px auto;
+  padding: 40px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.page-state-icon {
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.state-error-icon {
+  color: #DC2626;
+}
+
+.state-title {
+  font-size: 24px;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.state-desc {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 420px;
+}
+
+.state-action {
+  margin-top: 12px;
+  text-decoration: none;
 }
 
 .payment-header-row {
@@ -878,6 +1221,23 @@ function handleConfirmManual() {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.cashier-deadline-panel {
+  background-color: var(--primary-soft);
+  border: 1px solid #FCD9BD;
+}
+
+.cashier-deadline-panel .deadline-tag {
+  color: var(--primary);
+}
+
+.cashier-deadline-panel .timer-label {
+  color: #7C2D12;
+}
+
+.cashier-panel-icon {
+  color: var(--primary);
 }
 
 .deadline-timer-row {
@@ -983,6 +1343,8 @@ function handleConfirmManual() {
 }
 
 .method-card {
+  width: 100%;
+  background-color: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-md);
   padding: 16px;
@@ -990,6 +1352,13 @@ function handleConfirmManual() {
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
+  text-align: left;
+  font-family: inherit;
+}
+
+.method-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .method-card:hover {
@@ -1093,6 +1462,38 @@ function handleConfirmManual() {
 .qr-vector {
   width: 100%;
   height: 100%;
+}
+
+.qr-real-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.qr-loading-box {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.qr-error-box {
+  color: #B91C1C;
+}
+
+.qr-error-box .btn-retry-camera {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .qr-caption {
@@ -1522,12 +1923,146 @@ function handleConfirmManual() {
 
 /* ─── VA Display Card ─── */
 .va-panel,
-.ewallet-panel {
+.cashier-panel {
   padding: 28px;
 }
 
-.va-display-card,
-.ewallet-display-card {
+.va-loading-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--surface-warm);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.va-error-box {
+  margin-bottom: 20px;
+  border: 1px dashed #FCA5A5;
+  border-radius: var(--radius-md);
+  background-color: #FEF2F2;
+}
+
+.status-feedback {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background-color: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin: 0 0 12px 0;
+}
+
+.btn-retry-camera {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--primary);
+  color: #FFFFFF;
+  border: none;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.btn-retry-camera:hover {
+  filter: brightness(1.05);
+}
+
+.bank-check {
+  margin-left: auto;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.cashier-display-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: var(--surface-warm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.cashier-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background-color: var(--primary-soft);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cashier-display-body {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cashier-display-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.cashier-code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cashier-code-val {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+}
+
+.cashier-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cashier-total {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.cashier-total strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.cashier-security-note {
+  margin-top: 0;
+}
+
+.va-display-card {
   background: var(--surface-warm);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1657,8 +2192,17 @@ function handleConfirmManual() {
   .methods-panel,
   .qris-panel,
   .va-panel,
-  .ewallet-panel {
+  .cashier-panel {
     padding: 16px;
+  }
+
+  .cashier-display-card {
+    flex-direction: column;
+  }
+
+  .cashier-total {
+    margin-left: 0;
+    text-align: left;
   }
 
   .panel-title {

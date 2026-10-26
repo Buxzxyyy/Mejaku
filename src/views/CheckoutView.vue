@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import {
   ShieldCheck,
@@ -20,18 +20,23 @@ import NoticeBox from '@/components/common/NoticeBox.vue'
 import HelpCallout from '@/components/common/HelpCallout.vue'
 import { useOrderStore } from '@/stores/orderStore'
 import { formatRupiah } from '@/utils/pricing'
+import { api } from '@/api/client'
 
 const router = useRouter()
 const orderStore = useOrderStore()
 
-const breadcrumbItems = [
+const breadcrumbItems = computed(() => [
   { label: 'Beranda', to: '/' },
-  { label: 'Warung Bali Dwi', to: '/' },
+  { label: orderStore.cartItems[0]?.merchant || orderStore.currentItemConfig?.merchant || 'Pujasera', to: '/menu' },
   { label: 'Keranjang Pesanan' },
-]
+])
 
 const promoInput = ref('')
 const isSubmitting = ref(false)
+const orderError = ref('')
+const activePromos = ref<any[]>([])
+const promosLoading = ref(false)
+let promoRevalidateTimer: ReturnType<typeof setTimeout> | null = null
 
 // Confirm delete dialog state
 const showDeleteConfirm = ref(false)
@@ -68,21 +73,65 @@ function handleNoteInput(e: Event) {
   orderStore.setCustomerNote(target.value)
 }
 
-function handleApplyPromo() {
+async function handleApplyPromo() {
   if (!promoInput.value.trim()) return
-  orderStore.applyPromo(promoInput.value)
+  await orderStore.applyPromoAsync(promoInput.value)
 }
 
-function handleCreateOrder() {
+function handlePromoPreset(code: string) {
+  promoInput.value = code
+  orderStore.applyPromoAsync(code)
+}
+
+function handleRemovePromo() {
+  promoInput.value = ''
+  orderStore.removePromo()
+}
+
+async function loadActivePromos() {
+  promosLoading.value = true
+  try {
+    const res = await api.getActivePromos()
+    activePromos.value = Array.isArray(res.data) ? res.data : []
+  } catch {
+    activePromos.value = []
+  } finally {
+    promosLoading.value = false
+  }
+}
+
+onMounted(loadActivePromos)
+
+onUnmounted(() => {
+  if (promoRevalidateTimer) clearTimeout(promoRevalidateTimer)
+})
+
+// Diskon harus dihitung ulang setiap subtotal berubah, karena backend
+// memvalidasi min_order dan batas maksimal diskon.
+watch(
+  () => orderStore.totalSubtotal,
+  () => {
+    if (!orderStore.promoCode) return
+    if (promoRevalidateTimer) clearTimeout(promoRevalidateTimer)
+    promoRevalidateTimer = setTimeout(() => {
+      orderStore.applyPromoAsync(orderStore.promoCode)
+    }, 350)
+  }
+)
+
+async function handleCreateOrder() {
   if (isSubmitting.value || orderStore.cartItems.length === 0) return
   isSubmitting.value = true
+  orderError.value = ''
 
-  const order = orderStore.createOrder()
-
-  setTimeout(() => {
-    isSubmitting.value = false
+  try {
+    const order = await orderStore.createOrderAsync()
     router.push(`/payment/${order.id}`)
-  }, 600)
+  } catch (err: any) {
+    orderError.value = err.message || 'Gagal membuat pesanan ke server. Pastikan koneksi backend aktif.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -238,9 +287,12 @@ function handleCreateOrder() {
                   <div>
                     <span class="banner-eyebrow">MEJAMU</span>
                     <div class="banner-table-title">
-                      Meja {{ orderStore.table.tableNumber }} · {{ orderStore.table.venue }}
+                      Meja {{ orderStore.table.tableNumber }}
                     </div>
-                    <span class="banner-table-sub">Lantai {{ orderStore.table.floor }} · {{ orderStore.table.area }}</span>
+                    <span class="banner-table-sub">
+                      Lantai {{ orderStore.table.floor }}
+                      <template v-if="!orderStore.table.isVerified"> · Belum terverifikasi</template>
+                    </span>
                   </div>
                 </div>
 
@@ -333,7 +385,7 @@ function handleCreateOrder() {
                       id="promo-input"
                       v-model="promoInput"
                       type="text"
-                      placeholder="Contoh: MEJAKUHEMAT"
+                      placeholder="Contoh: MEJAKU10"
                       class="promo-input"
                       @keydown.enter.prevent="handleApplyPromo"
                     />
@@ -348,27 +400,35 @@ function handleCreateOrder() {
                   </button>
                 </div>
 
-                <!-- Promo Examples / Suggestions -->
-                <div class="promo-examples-row">
-                  <span class="promo-examples-label">Contoh Kode Promo:</span>
+                <!-- Promo aktif dari database -->
+                <div v-if="activePromos.length > 0" class="promo-examples-row">
+                  <span class="promo-examples-label">Promo aktif:</span>
                   <div class="promo-chips-list">
                     <button
+                      v-for="promo in activePromos"
+                      :key="promo.code"
                       type="button"
                       class="promo-chip-btn"
-                      @click="promoInput = 'MEJAKUHEMAT'"
+                      @click="handlePromoPreset(promo.code)"
                     >
                       <Tag :size="12" />
-                      <span>MEJAKUHEMAT (-Rp 10rb)</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="promo-chip-btn"
-                      @click="promoInput = 'WARUNGBALI'"
-                    >
-                      <Tag :size="12" />
-                      <span>WARUNGBALI (-Rp 5rb)</span>
+                      <span>{{ promo.code }} · {{ promo.description }}</span>
                     </button>
                   </div>
+                </div>
+                <div v-else-if="promosLoading" class="promo-loading-text">
+                  Memuat promo dari database...
+                </div>
+
+                <!-- Promo yang sedang aktif -->
+                <div v-if="orderStore.promoStatus === 'success'" class="applied-promo-row">
+                  <span class="applied-promo-label">
+                    <Check :size="14" />
+                    {{ orderStore.promoCode }} aktif
+                  </span>
+                  <button type="button" class="applied-promo-remove" @click="handleRemovePromo">
+                    Hapus
+                  </button>
                 </div>
 
                 <!-- Promo Feedback message -->
@@ -384,8 +444,16 @@ function handleCreateOrder() {
                 </p>
               </div>
 
-              <!-- Price Breakdown Component -->
-              <PriceBreakdown :pricing="orderStore.pricing" mode="checkout" />
+              <!-- Rincian harga dari server/cart -->
+              <div class="checkout-price-breakdown">
+                <PriceBreakdown :pricing="orderStore.pricing" mode="checkout" />
+              </div>
+
+              <!-- Error Message if server order creation fails -->
+              <div v-if="orderError" class="checkout-server-error" role="alert">
+                <AlertTriangle :size="18" class="error-icon" />
+                <span>{{ orderError }}</span>
+              </div>
 
               <!-- Primary CTA: Submit Order -->
               <button
@@ -1337,5 +1405,48 @@ function handleCreateOrder() {
   .banner-table-title {
     font-size: 14px;
   }
+}
+
+.promo-loading-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+}
+
+.applied-promo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+}
+
+.applied-promo-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.applied-promo-remove {
+  border: none;
+  background: transparent;
+  color: #B91C1C;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.checkout-price-breakdown {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #EBDDCE;
 }
 </style>

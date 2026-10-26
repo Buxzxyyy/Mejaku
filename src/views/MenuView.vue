@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import {
   Search,
@@ -21,39 +21,83 @@ import AppNavbar from '@/components/common/AppNavbar.vue'
 import AppFooter from '@/components/common/AppFooter.vue'
 import FoodCard from '@/components/common/FoodCard.vue'
 import QrScannerModal from '@/components/common/QrScannerModal.vue'
-import { ALL_MENU_ITEMS, MENU_CATEGORIES, MAIN_MENU_ITEM } from '@/data/mockData'
+import { MENU_CATEGORIES } from '@/utils/categories'
+import { transformBackendMenuItem } from '@/utils/adapters'
 import { useOrderStore } from '@/stores/orderStore'
 import { formatRupiah } from '@/utils/pricing'
 import type { MenuItem } from '@/types'
+import { api } from '@/api/client'
 
 const router = useRouter()
 const route = useRoute()
 const orderStore = useOrderStore()
 
+const menuItems = ref<MenuItem[]>([])
+const isLoading = ref(true)
+const fetchError = ref<string | null>(null)
+
 const searchQuery = ref('')
 const selectedCategory = ref('all')
 const showScanner = ref(false)
-const showScanSuccessToast = ref(false)
+const scanToast = ref<{ type: 'success' | 'error'; message: string } | null>(null)
+let scanToastTimer: ReturnType<typeof setTimeout> | null = null
 
-// Detect table parameter from barcode scan (e.g. ?table=A12 or ?meja=B07)
-onMounted(() => {
-  const tableParam = (route.query.table || route.query.meja) as string
-  if (tableParam) {
-    const cleanTable = tableParam.toUpperCase()
-    orderStore.setTable({
-      tableNumber: cleanTable,
-      isVerified: true,
-    })
-    showScanSuccessToast.value = true
-    setTimeout(() => {
-      showScanSuccessToast.value = false
-    }, 4500)
+async function applyTableFromRoute() {
+  const tableParam = ((route.params.tableCode as string) || (route.query.table as string) || (route.query.meja as string))
+  if (!tableParam) return
+
+  const cleanTable = tableParam.toUpperCase()
+  const isValid = await orderStore.setTable({ tableNumber: cleanTable })
+
+  if (isValid) {
+    scanToast.value = {
+      type: 'success',
+      message: `QR Meja ${orderStore.table.tableNumber} berhasil terhubung! Pesananmu akan diantar ke mejamu.`,
+    }
+  } else {
+    scanToast.value = {
+      type: 'error',
+      message: `Meja ${cleanTable} tidak ditemukan atau tidak aktif. Pindai QR yang tertempel di meja.`,
+    }
   }
+
+  if (scanToastTimer) clearTimeout(scanToastTimer)
+  scanToastTimer = setTimeout(() => {
+    scanToast.value = null
+  }, 4500)
+}
+
+watch(
+  () => [route.params.tableCode, route.query.table, route.query.meja],
+  () => applyTableFromRoute()
+)
+
+async function loadMenu() {
+  isLoading.value = true
+  fetchError.value = null
+  try {
+    const res = await api.getMenus()
+    if (res.data && Array.isArray(res.data)) {
+      menuItems.value = res.data.map(transformBackendMenuItem)
+    } else {
+      menuItems.value = []
+    }
+  } catch (err: any) {
+    fetchError.value = 'Gagal memuat menu dari server backend.'
+    menuItems.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  applyTableFromRoute()
+  loadMenu()
 })
 
 // Filter menu items by category and search text
 const filteredMenuItems = computed(() => {
-  let list = ALL_MENU_ITEMS
+  let list = menuItems.value
 
   // Category filter
   if (selectedCategory.value !== 'all') {
@@ -96,23 +140,27 @@ function clearSearch() {
   <div class="menu-page">
     <AppNavbar />
 
-    <!-- Scan success toast if entered via table QR query -->
-
-    <!-- Scan success toast if entered via table QR query -->
+    <!-- Scan result toast (success / invalid table) -->
     <Transition name="fade-slide">
-      <div v-if="showScanSuccessToast" class="scan-welcome-toast" role="alert">
+      <div
+        v-if="scanToast"
+        class="scan-welcome-toast"
+        :class="{ 'is-error': scanToast.type === 'error' }"
+        role="alert"
+      >
         <div class="toast-icon-wrap">
-          <CheckCircle :size="18" />
+          <CheckCircle v-if="scanToast.type === 'success'" :size="18" />
+          <X v-else :size="18" />
         </div>
         <div class="toast-text">
-          <strong>QR Meja {{ orderStore.table.tableNumber }} Berhasil Terhubung!</strong>
-          <span>Pesananmu akan langsung diantar oleh staf ke mejamu.</span>
+          <strong>{{ scanToast.type === 'success' ? 'QR Meja Terhubung!' : 'QR Meja Tidak Valid' }}</strong>
+          <span>{{ scanToast.message }}</span>
         </div>
         <button
           type="button"
           class="toast-close"
           aria-label="Tutup notifikasi"
-          @click="showScanSuccessToast = false"
+          @click="scanToast = null"
         >
           <X :size="16" />
         </button>
@@ -193,7 +241,7 @@ function clearSearch() {
             :class="{ active: selectedCategory === cat.id }"
             @click="handleCategoryChange(cat.id)"
           >
-            <span class="cat-icon">{{ cat.icon }}</span>
+            <span v-if="cat.icon" class="cat-icon">{{ cat.icon }}</span>
             <span class="cat-name">{{ cat.name }}</span>
           </button>
         </div>
@@ -217,21 +265,30 @@ function clearSearch() {
 
         </div>
 
-        <!-- Empty search results state -->
-        <div v-if="filteredMenuItems.length === 0" class="empty-menu-state">
+        <!-- Loading state -->
+        <div v-if="isLoading" class="empty-menu-state" style="padding: 48px 16px;">
+          <div class="empty-icon-box animate-spin-slow">
+            <UtensilsCrossed :size="40" />
+          </div>
+          <h3 class="empty-title font-display">Memuat Menu Dapur...</h3>
+          <p class="empty-desc">Mengambil data menu langsung dari server backend.</p>
+        </div>
+
+        <!-- Empty search results / error state -->
+        <div v-else-if="filteredMenuItems.length === 0" class="empty-menu-state">
           <div class="empty-icon-box">
             <UtensilsCrossed :size="48" />
           </div>
-          <h3 class="empty-title font-display">Tidak Ada Menu yang Cocok</h3>
+          <h3 class="empty-title font-display">{{ fetchError || 'Tidak Ada Menu yang Cocok' }}</h3>
           <p class="empty-desc">
-            Kami tidak dapat menemukan hidangan dengan kata kunci "{{ searchQuery }}". Coba cari kata kunci lain seperti "nasi", "sate", "soto", atau "cendol".
+            {{ fetchError ? 'Silakan periksa koneksi backend atau coba muat ulang.' : `Kami tidak dapat menemukan hidangan dengan kata kunci "${searchQuery}". Coba kata kunci lain atau lihat seluruh menu.` }}
           </p>
           <button
             type="button"
             class="btn-primary empty-btn"
-            @click="clearSearch(); selectedCategory = 'all'"
+            @click="clearSearch(); selectedCategory = 'all'; loadMenu()"
           >
-            Lihat Semua Menu
+            Muat Ulang Semua Menu
           </button>
         </div>
 
@@ -423,6 +480,14 @@ function clearSearch() {
 .toast-icon-wrap {
   color: #81C995;
   flex-shrink: 0;
+}
+
+.scan-welcome-toast.is-error {
+  background-color: #7F1D1D;
+}
+
+.scan-welcome-toast.is-error .toast-icon-wrap {
+  color: #FCA5A5;
 }
 
 .toast-text {

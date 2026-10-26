@@ -11,7 +11,7 @@ const props = withDefaults(
   }>(),
   {
     title: 'Butuh bantuan untuk pesananmu?',
-    description: 'Tanya KuBot AI untuk rekomendasi menu, panduan bayar, atau panggil pramusaji ke Meja A12.',
+    description: 'Tanya KuBot AI untuk rekomendasi menu, panduan bayar, atau panggil pramusaji ke meja Anda.',
     actionText: 'Tanya KuBot AI',
     promptContext: '',
   }

@@ -39,7 +39,7 @@ withDefaults(
           </p>
 
           <div class="halal-badge">
-            <span>🇮🇩 Solusi Kuliner Pujasera Indonesia</span>
+            <span>Solusi Kuliner Pujasera Indonesia</span>
           </div>
         </div>
 

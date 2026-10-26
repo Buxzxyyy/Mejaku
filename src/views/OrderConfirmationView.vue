@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
+import { api } from '@/api/client'
 import {
   CheckCircle2,
   QrCode,
@@ -28,6 +29,25 @@ const route = useRoute()
 const orderStore = useOrderStore()
 
 const routeOrderId = computed(() => (route.params.orderId as string) || '')
+
+const currentOrderNumber = computed(() => {
+  return orderStore.currentOrder?.orderNumber || (route.params.orderId ? '#' + String(route.params.orderId) : 'Pesanan Meja')
+})
+
+const orderTable = computed(() => orderStore.currentOrder?.table || orderStore.table)
+
+const paymentMethodDisplay = computed(() => {
+  const order = activeOrder.value || orderStore.currentOrder
+  if (order?.paymentMethodLabel) return order.paymentMethodLabel
+  switch (order?.paymentMethod) {
+    case 'bank_va':
+      return 'Transfer Bank / Virtual Account'
+    case 'cashier':
+      return 'Kasir'
+    default:
+      return 'QRIS'
+  }
+})
 
 // Active order matching this confirmation view
 const activeOrder = computed(() => {
@@ -71,20 +91,7 @@ const orderItems = computed(() => {
   if (orderStore.cartItems.length > 0) {
     return orderStore.cartItems
   }
-  return [
-    {
-      cartId: 'fallback-1',
-      itemId: '1',
-      name: orderStore.currentItemConfig.name,
-      merchant: orderStore.currentItemConfig.merchant,
-      image: orderStore.currentItemConfig.image,
-      quantity: orderStore.quantity,
-      portion: orderStore.currentPortion,
-      spice: orderStore.currentSpice,
-      addons: orderStore.currentAddons,
-      subtotal: orderStore.pricing.subtotal,
-    }
-  ]
+  return []
 })
 
 const confirmedPricing = computed(() => {
@@ -115,6 +122,50 @@ const paymentTimeDisplay = computed(() => {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`
 })
 
+let pollTimer: any = null
+
+function mapBackendStatus(backendStatus: string): PrepStatus {
+  switch (backendStatus) {
+    case 'ready':
+      return 'ready'
+    case 'completed':
+      return 'completed'
+    case 'preparing':
+      return 'preparing'
+    case 'paid':
+    case 'pending':
+    default:
+      return 'received'
+  }
+}
+
+async function checkLiveOrderStatus() {
+  const currentId = (route.params.orderId as string) || orderStore.currentOrder?.id
+  if (!currentId) return
+
+  if (!orderStore.currentOrder || orderStore.currentOrder.id !== currentId) {
+    await orderStore.fetchOrder(currentId)
+  }
+
+  try {
+    const res = await api.getOrder(currentId)
+    if (res.data) {
+      const backendPrep = res.data.preparation_status || res.data.status
+      if (backendPrep) {
+        const mapped = mapBackendStatus(backendPrep)
+        currentPrepStatus.value = mapped
+        orderStore.setPrepStatus(mapped)
+        if (backendPrep === 'completed' && pollTimer) {
+          clearInterval(pollTimer)
+          pollTimer = null
+        }
+      }
+    }
+  } catch {
+    // Abaikan error polling
+  }
+}
+
 onMounted(() => {
   if (routeOrderId.value) {
     orderStore.loadOrderFromHistory(routeOrderId.value)
@@ -136,6 +187,16 @@ onMounted(() => {
     })
   } catch {
     // Ignore confetti errors if canvas unavailable
+  }
+
+  checkLiveOrderStatus()
+  pollTimer = setInterval(checkLiveOrderStatus, 4000)
+})
+
+onUnmounted(() => {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
   }
 })
 
@@ -211,7 +272,7 @@ function handleReorderThisOrder() {
               :status="currentPrepStatus"
               :payment-timestamp="paymentTimeDisplay"
               :food-name="orderItemsFoodNames"
-              :table-number="orderStore.table.tableNumber"
+              :table-number="orderTable.tableNumber"
               @update:status="handleStatusUpdate"
             />
           </div>
@@ -239,10 +300,10 @@ function handleReorderThisOrder() {
               <div class="table-location-meta">
                 <span class="meta-sub">Meja Terpilih Anda</span>
                 <strong class="meta-title">
-                  Meja {{ orderStore.table.tableNumber }} · Lantai {{ orderStore.table.floor }}
+                  Meja {{ orderTable.tableNumber }} · Lantai {{ orderTable.floor }}
                 </strong>
                 <p class="meta-desc">
-                  {{ orderStore.table.venue }}, {{ orderStore.table.area }}
+                  Pesanan akan diantar langsung ke meja ini oleh pramusaji.
                 </p>
               </div>
             </div>
@@ -265,7 +326,7 @@ function handleReorderThisOrder() {
                 <div>
                   <span class="ord-tag">NO. PESANAN</span>
                   <strong class="ord-code font-sans">
-                    {{ orderStore.currentOrder?.orderNumber || '#MJK-72600-BA' }}
+                    {{ currentOrderNumber }}
                   </strong>
                 </div>
                 <div class="ord-badge-live">
@@ -339,7 +400,7 @@ function handleReorderThisOrder() {
             <div class="summary-card-footer">
               <span class="footer-method-label">Metode Pembayaran:</span>
               <strong class="footer-method-val">
-                {{ (activeOrder?.paymentMethod || orderStore.currentOrder?.paymentMethod) === 'bank_va' ? 'Transfer Bank Virtual Account' : (activeOrder?.paymentMethod || orderStore.currentOrder?.paymentMethod) === 'ewallet' ? 'E-Wallet' : 'QRIS Otomatis' }}
+                {{ paymentMethodDisplay }}
               </strong>
             </div>
           </div>

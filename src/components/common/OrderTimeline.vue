@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Check, Flame, UtensilsCrossed, PartyPopper } from 'lucide-vue-next'
+import { Check, Flame, UtensilsCrossed } from 'lucide-vue-next'
 import type { PrepStatus } from '@/types'
 
 const props = withDefaults(
@@ -27,6 +27,8 @@ const statusOrder: PrepStatus[] = ['received', 'preparing', 'ready', 'completed'
 const currentStepIndex = computed(() => {
   return statusOrder.indexOf(props.status)
 })
+
+const isFinished = computed(() => props.status === 'completed')
 
 interface StepItem {
   id: PrepStatus
@@ -57,7 +59,7 @@ const steps = computed<StepItem[]>(() => [
   {
     id: 'completed',
     title: 'Pesanan Selesai',
-    description: 'Selamat menikmati hidangan lezat Anda di Jakarta Culinary Hall!',
+    description: 'Selamat menikmati hidangan lezat Anda. Terima kasih telah memesan di MejaKu!',
     timestamp: 'Selesai',
   },
 ])
@@ -75,9 +77,9 @@ function setStep(newStatus: PrepStatus) {
         :key="step.id"
         class="timeline-step"
         :class="{
-          'is-completed': index < currentStepIndex,
-          'is-current': index === currentStepIndex,
-          'is-pending': index > currentStepIndex,
+          'is-completed': index < currentStepIndex || isFinished,
+          'is-current': index === currentStepIndex && !isFinished,
+          'is-pending': index > currentStepIndex && !isFinished,
         }"
       >
         <!-- Connector vertical line -->
@@ -90,13 +92,12 @@ function setStep(newStatus: PrepStatus) {
 
         <!-- Node Icon Circle -->
         <div class="step-node" aria-hidden="true">
-          <template v-if="index < currentStepIndex">
+          <template v-if="index < currentStepIndex || isFinished">
             <Check :size="16" stroke-width="3" />
           </template>
           <template v-else-if="index === currentStepIndex">
             <Flame v-if="step.id === 'preparing'" :size="18" class="pulse-icon" />
             <UtensilsCrossed v-else-if="step.id === 'ready'" :size="18" class="pulse-icon" />
-            <PartyPopper v-else-if="step.id === 'completed'" :size="18" class="pulse-icon" />
             <Check v-else :size="16" />
           </template>
           <template v-else>
@@ -109,7 +110,7 @@ function setStep(newStatus: PrepStatus) {
           <div class="step-header">
             <h4 class="step-title">{{ step.title }}</h4>
             <span v-if="index <= currentStepIndex" class="step-time">
-              {{ index === currentStepIndex ? 'Sedang berlangsung' : step.timestamp }}
+              {{ index === currentStepIndex ? (isFinished ? 'Selesai' : 'Sedang berlangsung') : step.timestamp }}
             </span>
           </div>
           <p class="step-desc">{{ step.description }}</p>

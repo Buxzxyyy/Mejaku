@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, watch, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   QrCode,
   X,
   CheckCircle,
   Sparkles,
-  MapPin,
   Camera,
   AlertCircle,
-  Copy,
-  ExternalLink,
+  RefreshCw,
 } from 'lucide-vue-next'
 import jsQR from 'jsqr'
 import QRCode from 'qrcode'
 import { useOrderStore } from '@/stores/orderStore'
+import { api } from '@/api/client'
 
 const props = defineProps<{
   modelValue: boolean
@@ -29,9 +28,14 @@ const orderStore = useOrderStore()
 
 const activeTab = ref<'camera' | 'samples'>('camera')
 const isSuccess = ref(false)
-const selectedTable = ref('A12')
+const selectedTable = ref('')
 const cameraError = ref('')
+const scanError = ref('')
 const isCameraLoading = ref(false)
+
+const tables = ref<ScannerTable[]>([])
+const isLoadingTables = ref(false)
+const tablesError = ref('')
 
 const videoRef = ref<HTMLVideoElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -39,60 +43,47 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 let mediaStream: MediaStream | null = null
 let animationFrameId: number | null = null
 
-export interface SampleTable {
-  id: string
-  name: string
-  venue: string
-  area: string
-  floor: number
+interface ScannerTable {
+  id: number
+  code: string
+  floor: string
   qrUrl?: string
 }
 
-const sampleTables = ref<SampleTable[]>([
-  {
-    id: 'A12',
-    name: 'Meja A12',
-    venue: 'Jakarta Culinary Hall',
-    area: 'Blok B (Dekat Air Mancur)',
-    floor: 2,
-  },
-  {
-    id: 'B07',
-    name: 'Meja B07',
-    venue: 'Pujasera Sunset',
-    area: 'Outdoor Terrace',
-    floor: 1,
-  },
-  {
-    id: 'C15',
-    name: 'Meja C15',
-    venue: 'Food Oasis Atrium',
-    area: 'Zona Santai Tengah',
-    floor: 1,
-  },
-  {
-    id: 'D04',
-    name: 'Meja D04',
-    venue: 'Garden Terrace Food Plaza',
-    area: 'Area Kanopi Tropis',
-    floor: 1,
-  },
-  {
-    id: 'VIP1',
-    name: 'Meja VIP 1',
-    venue: 'Private Dining Hall',
-    area: 'Ruang Eksekutif MejaKu',
-    floor: 2,
-  },
-])
+/**
+ * Ambil daftar meja aktif dari database. Dipanggil setiap modal dibuka
+ * supaya meja yang baru dibuat di dashboard langsung muncul.
+ */
+async function loadTables() {
+  isLoadingTables.value = true
+  tablesError.value = ''
 
-// Generate Real Scannable QR Codes for the 5 sample tables
-async function generateSampleQrs() {
+  try {
+    const res = await api.getTables()
+    const list = Array.isArray(res.data) ? res.data : []
+    tables.value = list.map((t: any) => ({
+      id: Number(t.id),
+      code: String(t.code || '').toUpperCase(),
+      floor: String(t.floor || ''),
+    }))
+    if (!selectedTable.value && tables.value.length > 0) {
+      selectedTable.value = tables.value[0].code
+    }
+    await generateTableQrs()
+  } catch {
+    tables.value = []
+    tablesError.value = 'Gagal memuat daftar meja dari server. Periksa koneksi backend.'
+  } finally {
+    isLoadingTables.value = false
+  }
+}
+
+// Generate QR preview dari kode meja yang benar-benar ada di database.
+async function generateTableQrs() {
   const origin = window.location.origin
-  for (const t of sampleTables.value) {
+  for (const t of tables.value) {
     try {
-      const targetUrl = `${origin}/?table=${t.id}`
-      t.qrUrl = await QRCode.toDataURL(targetUrl, {
+      t.qrUrl = await QRCode.toDataURL(`${origin}/?table=${encodeURIComponent(t.code)}`, {
         width: 220,
         margin: 1,
         color: {
@@ -102,15 +93,10 @@ async function generateSampleQrs() {
         errorCorrectionLevel: 'M',
       })
     } catch {
-      // Fallback if QRCode generation has an issue
       t.qrUrl = ''
     }
   }
 }
-
-onMounted(() => {
-  generateSampleQrs()
-})
 
 // Camera lifecycle management
 watch(
@@ -118,7 +104,9 @@ watch(
   async (isOpen) => {
     if (isOpen) {
       isSuccess.value = false
+      scanError.value = ''
       cameraError.value = ''
+      await loadTables()
       if (activeTab.value === 'camera') {
         await nextTick()
         startCamera()
@@ -171,9 +159,9 @@ async function startCamera() {
   } catch (err: any) {
     isCameraLoading.value = false
     if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-      cameraError.value = 'Izin kamera ditolak. Silakan izinkan kamera di browser atau pilih salah satu meja sample di bawah.'
+      cameraError.value = 'Izin kamera ditolak. Silakan izinkan kamera di browser atau pilih meja dari tab QR Stiker Meja.'
     } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-      cameraError.value = 'Kamera tidak ditemukan pada perangkat ini. Silakan gunakan kartu meja sample di bawah.'
+      cameraError.value = 'Kamera tidak ditemukan pada perangkat ini. Silakan pilih meja dari tab QR Stiker Meja.'
     } else {
       cameraError.value = 'Tidak dapat memulai kamera: ' + (err.message || 'Periksa pengaturan kamera.')
     }
@@ -195,7 +183,7 @@ function stopCamera() {
 }
 
 function requestScanTick() {
-  if (!props.modelValue || activeTab.value !== 'camera' || isSuccess.value) return
+  if (!props.modelValue || activeTab.value !== 'camera' || isSuccess.value || scanError.value) return
 
   const video = videoRef.value
   if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
@@ -221,44 +209,58 @@ function requestScanTick() {
   animationFrameId = requestAnimationFrame(requestScanTick)
 }
 
-// Parse scanned content (supports full URLs like ?table=A12 or plain text like A12 or MEJA-A12)
-function handleRawScanData(rawText: string) {
-  let detectedId = ''
+// Parse scanned content (supports full URLs like ?table=A12,
+// /pesan/A12, plain text A12, or MEJA-A12).
+async function handleRawScanData(rawText: string) {
+  let detectedCode = ''
 
   try {
     const parsedUrl = new URL(rawText)
-    const tableParam = parsedUrl.searchParams.get('table') || parsedUrl.searchParams.get('meja')
+    const tableParam =
+      parsedUrl.searchParams.get('table') ||
+      parsedUrl.searchParams.get('meja') ||
+      parsedUrl.pathname.match(/\/pesan\/([A-Za-z0-9-]+)/)?.[1]
     if (tableParam) {
-      detectedId = tableParam.toUpperCase()
+      detectedCode = tableParam.toUpperCase()
     }
   } catch {
     // Plain text scan
   }
 
-  if (!detectedId) {
-    const upper = rawText.toUpperCase()
-    for (const t of sampleTables.value) {
-      if (upper.includes(t.id)) {
-        detectedId = t.id
-        break
-      }
-    }
+  if (!detectedCode) {
+    const upper = rawText.trim().toUpperCase()
+    const mejaMatch = upper.match(/MEJA[\s-]*([A-Z0-9-]+)/)
+    detectedCode = (mejaMatch?.[1] || upper.replace(/\s+/g, '')).toUpperCase()
   }
 
-  // If found in sample tables or valid table identifier
-  const foundTable = sampleTables.value.find((t) => t.id === detectedId) || {
-    id: detectedId || 'A12',
-    name: `Meja ${detectedId || 'A12'}`,
-    venue: 'Jakarta Culinary Hall',
-    area: 'Blok Terverifikasi',
-    floor: (detectedId || 'A12').startsWith('A') ? 2 : 1,
+  if (!detectedCode) {
+    scanError.value = 'Kode QR tidak valid. Gunakan QR yang tertempel di meja.'
+    return
   }
 
-  applyVerifiedTable(foundTable)
+  // Pastikan kode benar-benar ada di database, bukan hasil tebakan.
+  if (tables.value.length === 0) {
+    await loadTables()
+  }
+
+  const foundTable = tables.value.find((t) => t.code === detectedCode)
+  if (!foundTable) {
+    scanError.value = `Meja ${detectedCode} tidak ditemukan atau tidak aktif.`
+    return
+  }
+
+  await applyVerifiedTable(foundTable)
 }
 
-function applyVerifiedTable(tableItem: SampleTable) {
-  selectedTable.value = tableItem.id
+async function applyVerifiedTable(tableItem: ScannerTable) {
+  scanError.value = ''
+  const isValid = await orderStore.setTable({ tableNumber: tableItem.code })
+  if (!isValid) {
+    scanError.value = `Meja ${tableItem.code} tidak ditemukan atau tidak aktif.`
+    return
+  }
+
+  selectedTable.value = tableItem.code
   isSuccess.value = true
   playBeepSound()
 
@@ -272,19 +274,17 @@ function applyVerifiedTable(tableItem: SampleTable) {
 
   stopCamera()
 
-  // Save to persistent Pinia store
-  orderStore.setTable({
-    tableNumber: tableItem.id,
-    floor: tableItem.floor,
-    venue: tableItem.venue,
-    area: tableItem.area,
-    isVerified: true,
-  })
-
   setTimeout(() => {
     closeModal()
-    router.push('/')
+    router.push({ path: '/', query: { table: tableItem.code } })
   }, 1200)
+}
+
+function retryScan() {
+  scanError.value = ''
+  if (props.modelValue && activeTab.value === 'camera' && !isSuccess.value) {
+    requestScanTick()
+  }
 }
 
 // Gentle pleasant scanner beep feedback
@@ -316,6 +316,7 @@ function closeModal() {
   stopCamera()
   emit('update:modelValue', false)
   isSuccess.value = false
+  scanError.value = ''
 }
 
 onUnmounted(() => {
@@ -353,7 +354,7 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <!-- Tab Selector: Live Camera vs 5 Sample Barcodes -->
+        <!-- Tab Selector: Live Camera vs QR stickers -->
         <div class="scanner-tabs-bar">
           <button
             type="button"
@@ -371,7 +372,7 @@ onUnmounted(() => {
             @click="activeTab = 'samples'"
           >
             <QrCode :size="15" />
-            <span>5 QR Stiker Meja (Sample)</span>
+            <span>{{ isLoadingTables ? 'Memuat...' : `${tables.length} QR Stiker Meja` }}</span>
           </button>
         </div>
 
@@ -418,6 +419,20 @@ onUnmounted(() => {
               </button>
             </div>
 
+            <!-- QR meja tidak valid -->
+            <div v-else-if="scanError" class="camera-center-msg error-msg">
+              <AlertCircle :size="32" class="error-icon" />
+              <p class="error-text">{{ scanError }}</p>
+              <button
+                type="button"
+                class="btn-retry-camera"
+                @click="retryScan"
+              >
+                <RefreshCw :size="14" />
+                Coba Pindai Lagi
+              </button>
+            </div>
+
             <!-- Scanning Guide Overlay -->
             <div v-else-if="!isSuccess" class="qr-target-guide">
               <span class="target-hint">Arahkan kamera ke kode QR di mejamu</span>
@@ -436,84 +451,109 @@ onUnmounted(() => {
           </div>
 
           <!-- Quick click-to-select fallback under camera -->
-          <div class="quick-tables-row">
-            <span class="quick-label">Atau simulasi tap meja:</span>
+          <div v-if="tables.length > 0" class="quick-tables-row">
+            <span class="quick-label">Atau pilih meja terdaftar:</span>
             <div class="quick-chips">
               <button
-                v-for="t in sampleTables"
-                :key="t.id"
+                v-for="t in tables"
+                :key="t.code"
                 type="button"
                 class="quick-table-chip"
-                :class="{ active: selectedTable === t.id && isSuccess }"
+                :class="{ active: selectedTable === t.code && isSuccess }"
                 @click="applyVerifiedTable(t)"
               >
-                {{ t.name }}
+                Meja {{ t.code }}
               </button>
             </div>
           </div>
         </div>
 
-        <!-- TAB 2: 5 Sample QR Stickers for user to test scanning -->
+        <!-- TAB 2: QR stickers for every active table in the database -->
         <div v-show="activeTab === 'samples'" class="samples-tab-content">
-          <div class="samples-intro">
-            <Sparkles :size="16" class="sparkle-icon" />
-            <p>
-              Gunakan ponsel untuk memindai salah satu dari <strong>5 QR stiker barcode meja</strong> di bawah ini, atau klik tombol untuk memilih langsung:
-            </p>
+          <div v-if="isLoadingTables" class="samples-state">
+            <div class="loading-spin dark-spin" />
+            <span>Memuat daftar meja dari database...</span>
           </div>
 
-          <div class="sample-qrs-grid">
-            <div
-              v-for="t in sampleTables"
-              :key="t.id"
-              class="sample-qr-card"
-              :class="{ selected: selectedTable === t.id && isSuccess }"
-            >
-              <!-- Sticker Header -->
-              <div class="sticker-top">
-                <div class="sticker-brand">
-                  <span class="brand-m">M</span>
-                  <span class="brand-text">MejaKu</span>
-                </div>
-                <span class="sticker-floor">Lt. {{ t.floor }}</span>
-              </div>
+          <div v-else-if="tablesError" class="samples-state error-state">
+            <AlertCircle :size="28" />
+            <p>{{ tablesError }}</p>
+            <button type="button" class="btn-retry-camera" @click="loadTables">
+              <RefreshCw :size="14" />
+              Coba Muat Ulang
+            </button>
+          </div>
 
-              <!-- Generated Real QR Code Image -->
-              <div class="qr-code-frame">
-                <img
-                  v-if="t.qrUrl"
-                  :src="t.qrUrl"
-                  :alt="`QR Barcode ${t.name}`"
-                  class="generated-qr-img"
-                />
-                <div v-else class="qr-placeholder">
-                  <QrCode :size="100" />
-                </div>
-              </div>
+          <div v-else-if="tables.length === 0" class="samples-state">
+            <QrCode :size="36" />
+            <p>Belum ada meja aktif. Tambahkan meja dari dashboard admin terlebih dahulu.</p>
+            <button type="button" class="btn-retry-camera" @click="loadTables">
+              <RefreshCw :size="14" />
+              Muat Ulang
+            </button>
+          </div>
 
-              <!-- Table Info -->
-              <div class="sticker-info">
-                <strong class="sticker-table-title">{{ t.name }}</strong>
-                <span class="sticker-venue">{{ t.venue }}</span>
-                <span class="sticker-area">{{ t.area }}</span>
-              </div>
-
-              <!-- Action Button -->
-              <button
-                type="button"
-                class="btn-apply-sticker"
-                @click="applyVerifiedTable(t)"
-              >
-                Terapkan {{ t.name }}
-              </button>
+          <template v-else>
+            <div class="samples-intro">
+              <Sparkles :size="16" class="sparkle-icon" />
+              <p>
+                Gunakan ponsel untuk memindai salah satu dari <strong>{{ tables.length }} QR stiker meja</strong> di bawah ini, atau klik tombol untuk memilih langsung:
+              </p>
             </div>
-          </div>
+
+            <div class="sample-qrs-grid">
+              <div
+                v-for="t in tables"
+                :key="t.id"
+                class="sample-qr-card"
+                :class="{ selected: selectedTable === t.code && isSuccess }"
+              >
+                <!-- Sticker Header -->
+                <div class="sticker-top">
+                  <div class="sticker-brand">
+                    <span class="brand-m">M</span>
+                    <span class="brand-text">MejaKu</span>
+                  </div>
+                  <span class="sticker-floor">{{ t.floor || 'Meja' }}</span>
+                </div>
+
+                <!-- Generated QR Code Image -->
+                <div class="qr-code-frame">
+                  <img
+                    v-if="t.qrUrl"
+                    :src="t.qrUrl"
+                    :alt="`QR Meja ${t.code}`"
+                    class="generated-qr-img"
+                  />
+                  <div v-else class="qr-placeholder">
+                    <QrCode :size="100" />
+                  </div>
+                </div>
+
+                <!-- Table Info -->
+                <div class="sticker-info">
+                  <strong class="sticker-table-title">Meja {{ t.code }}</strong>
+                  <span class="sticker-venue">Pindai QR ini untuk memesan</span>
+                  <span class="sticker-area">{{ t.floor }}</span>
+                </div>
+
+                <!-- Action Button -->
+                <button
+                  type="button"
+                  class="btn-apply-sticker"
+                  @click="applyVerifiedTable(t)"
+                >
+                  Terapkan Meja {{ t.code }}
+                </button>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- Footer notice -->
         <div class="scanner-footer">
           <p>
-            💡 <strong>Info:</strong> Kamera pemindai membaca barcode & QR code secara otomatis secara real-time. Jika membuka web di HP lain, Anda dapat langsung mengarahkan kamera ke salah satu dari 5 QR di atas!
+            <strong>Info:</strong> Kamera pemindai membaca barcode & QR code secara otomatis secara real-time. Jika membuka web di HP lain, Anda dapat langsung mengarahkan kamera ke salah satu QR di atas!
           </p>
         </div>
       </div>
@@ -885,7 +925,7 @@ onUnmounted(() => {
   border-color: #22C55E;
 }
 
-/* TAB 2: 5 Sample QR Stickers */
+/* TAB 2: QR stickers from database */
 .samples-tab-content {
   padding: 16px 20px;
   overflow-y: auto;
@@ -893,6 +933,33 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.samples-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.samples-state p {
+  margin: 0;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.samples-state.error-state {
+  color: #B91C1C;
+}
+
+.dark-spin {
+  border-color: rgba(30, 41, 59, 0.15);
+  border-top-color: var(--primary);
 }
 
 .samples-intro {

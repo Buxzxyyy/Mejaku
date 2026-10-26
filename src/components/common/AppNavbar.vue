@@ -48,6 +48,11 @@ onUnmounted(() => {
   if (reorderToastTimer) clearTimeout(reorderToastTimer)
 })
 
+function openHistoryModal() {
+  orderStore.syncHistoryStatus()
+  showHistoryModal.value = true
+}
+
 function goToOrderStatus(orderId: string) {
   orderStore.loadOrderFromHistory(orderId)
   showHistoryModal.value = false
@@ -111,7 +116,7 @@ function handleReorder(orderId: string) {
           class="btn-nav-history"
           title="Lihat Riwayat Pesanan Meja"
           aria-label="Lihat Riwayat Pesanan"
-          @click="showHistoryModal = true"
+          @click="openHistoryModal"
         >
           <Receipt :size="18" />
           <span class="nav-history-text">Riwayat</span>

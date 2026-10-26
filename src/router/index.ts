@@ -4,6 +4,7 @@ import FoodDetailView from '@/views/FoodDetailView.vue'
 import CheckoutView from '@/views/CheckoutView.vue'
 import PaymentView from '@/views/PaymentView.vue'
 import OrderConfirmationView from '@/views/OrderConfirmationView.vue'
+import LandingView from '@/views/LandingView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -17,6 +18,18 @@ const router = createRouter({
     {
       path: '/menu',
       redirect: '/',
+    },
+    {
+      path: '/pesan/:tableCode?',
+      name: 'pesan-meja',
+      component: MenuView,
+      meta: { title: 'Pesan dari Meja — MejaKu' },
+    },
+    {
+      path: '/landing',
+      name: 'landing',
+      component: LandingView,
+      meta: { title: 'MejaKu — Solusi Pesan Kuliner Tanpa Antre' },
     },
     {
       path: '/menu/:slug',

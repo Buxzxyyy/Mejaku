@@ -13,20 +13,40 @@ import type {
   PrepStatus,
   MenuItem,
 } from '@/types'
-import { MAIN_MENU_ITEM, DEFAULT_TABLE } from '@/data/mockData'
 import { calculateUnitPrice, calculateOrderPricing } from '@/utils/pricing'
+import { api } from '@/api/client'
+import { transformBackendOrder, transformBackendMenuItem } from '@/utils/adapters'
+
+export const INITIAL_DEFAULT_TABLE: TableInfo = {
+  tableNumber: 'A12',
+  floor: 2,
+  isVerified: false,
+}
+
+export const DEFAULT_FALLBACK_ITEM: MenuItem = {
+  id: '1',
+  slug: 'nasi-campur-bali-agung',
+  name: 'Nasi Campur Bali Agung',
+  merchant: 'Warung Bali Dwi',
+  basePrice: 58000,
+  description: 'Nasi campur khas Bali dengan lauk lengkap dan bumbu rempah pilihan.',
+  image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80',
+  portions: [{ id: '1', name: 'Porsi Biasa', description: 'Ukuran porsi standar', price: 0 }],
+  spices: [{ id: '1', name: 'Biasa' }],
+  addons: [],
+}
 
 export const useOrderStore = defineStore('order', () => {
   // Table context
-  const table = ref<TableInfo>({ ...DEFAULT_TABLE })
+  const table = ref<TableInfo>({ ...INITIAL_DEFAULT_TABLE })
 
   // Cart items (starts EMPTY!)
   const cartItems = ref<CartItem[]>([])
 
   // Active item configuration (when viewing/customizing an item)
-  const currentItem = ref<MenuItem>(MAIN_MENU_ITEM)
-  const currentPortion = ref<PortionOption>(MAIN_MENU_ITEM.portions[0])
-  const currentSpice = ref<SpiceOption>(MAIN_MENU_ITEM.spices[0])
+  const currentItem = ref<MenuItem>(DEFAULT_FALLBACK_ITEM)
+  const currentPortion = ref<PortionOption>(DEFAULT_FALLBACK_ITEM.portions[0])
+  const currentSpice = ref<SpiceOption>(DEFAULT_FALLBACK_ITEM.spices[0])
   const currentAddons = ref<AddonOption[]>([])
   const quantity = ref<number>(1) // quantity for the item currently being customized
   const customerNote = ref<string>('')
@@ -42,74 +62,8 @@ export const useOrderStore = defineStore('order', () => {
   const paymentDeadline = ref<number>(Date.now() + (18 * 60 + 42) * 1000)
   const isCheckingPayment = ref<boolean>(false)
 
-  // Order History state
-  const orderHistory = ref<Order[]>([
-    {
-      id: 'MJK-51204-BA',
-      orderNumber: '#MJK-51204-BA',
-      paymentCode: 'MJK51204BA',
-      createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-      expiresAt: new Date(Date.now() - 3600000).toISOString(),
-      merchant: 'Warung Bali Dwi',
-      table: { ...DEFAULT_TABLE },
-      fulfillment: 'dine_in',
-      customerNote: 'Tolong sambal dipisah sedikit ya, terima kasih',
-      item: {
-        ...MAIN_MENU_ITEM,
-        itemId: MAIN_MENU_ITEM.id,
-        portion: MAIN_MENU_ITEM.portions[0],
-        spice: MAIN_MENU_ITEM.spices[0],
-        addons: [],
-        quantity: 1,
-        unitPrice: 32000,
-        subtotal: 32000,
-      },
-      items: [
-        {
-          cartId: 'hist-1',
-          itemId: 'menu-sate-01',
-          slug: 'sate-ayam-bumbu-bali',
-          name: 'Sate Ayam Bumbu Bali',
-          merchant: 'Warung Bali Dwi',
-          image: 'https://images.unsplash.com/photo-1529563021893-cc83c992d75d?auto=format&fit=crop&w=600&q=80',
-          basePrice: 32000,
-          portion: { id: 'regular', name: 'Porsi Biasa (10 Tusuk)', description: 'Standar dengan lontong', price: 0 },
-          spice: { id: 'medium', name: 'Sedang 🌶️' },
-          addons: [],
-          quantity: 1,
-          unitPrice: 32000,
-          subtotal: 32000,
-        },
-        {
-          cartId: 'hist-2',
-          itemId: 'menu-cendol-01',
-          slug: 'es-cendol-durian-gula-kelapa',
-          name: 'Es Cendol Durian Gula Kelapa',
-          merchant: 'Warung Bali Dwi',
-          image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80',
-          basePrice: 22000,
-          portion: { id: 'regular', name: 'Gelas Reguler', description: '', price: 0 },
-          spice: { id: 'normal-sweet', name: 'Manis Sedang' },
-          addons: [],
-          quantity: 1,
-          unitPrice: 22000,
-          subtotal: 22000,
-        },
-      ],
-      pricing: {
-        subtotal: 54000,
-        serviceFee: 2000,
-        taxRate: 0.1,
-        tax: 5400,
-        discount: 0,
-        total: 61400,
-      },
-      paymentMethod: 'qris',
-      paymentStatus: 'paid',
-      prepStatus: 'completed',
-      paymentTimestamp: '16:20 WIB',
-    },
-  ])
+  // Order History state (murni kosong secara default)
+  const orderHistory = ref<Order[]>([])
 
   // Calculations for active item being customized
   const unitPrice = computed(() => {
@@ -138,6 +92,21 @@ export const useOrderStore = defineStore('order', () => {
       appliedDiscount.value
     )
   })
+
+  // Setelah order dibuat, harga server adalah sumber kebenaran.
+  // Jangan memakai cart (yang bisa sudah dikosongkan) untuk halaman
+  // pembayaran/konfirmasi.
+  const orderPricing = computed(() => {
+    return currentOrder.value?.pricing || pricing.value
+  })
+
+  function setPaymentDeadline(value?: string | null) {
+    if (!value) return
+    const timestamp = new Date(value).getTime()
+    if (!Number.isNaN(timestamp)) {
+      paymentDeadline.value = timestamp
+    }
+  }
 
   // Backwards compatibility for single item views
   const currentItemConfig = computed<SelectedItemConfig>(() => {
@@ -251,9 +220,11 @@ export const useOrderStore = defineStore('order', () => {
 
   function clearCart() {
     cartItems.value = []
-    currentOrder.value = null
     appliedDiscount.value = 0
     promoCode.value = ''
+    promoStatus.value = 'idle'
+    promoMessage.value = ''
+    quantity.value = 1
     syncWithStorage()
   }
 
@@ -267,13 +238,26 @@ export const useOrderStore = defineStore('order', () => {
     customerNote.value = ''
   }
 
-  function setTable(tableInfo: Partial<TableInfo>) {
-    table.value = {
-      ...table.value,
-      ...tableInfo,
-      isVerified: true,
+  async function setTable(tableInfo: Partial<TableInfo>): Promise<boolean> {
+    const code = String(tableInfo.tableNumber || '').trim().toUpperCase()
+    if (!code) return false
+
+    try {
+      const res = await api.getTableByCode(code)
+      if (!res.data) return false
+
+      table.value = {
+        tableNumber: String(res.data.code || code).toUpperCase(),
+        floor: parseInt(String(res.data.floor).replace(/\D/g, ''), 10) || tableInfo.floor || 1,
+        isVerified: true,
+      }
+      syncWithStorage()
+      return true
+    } catch {
+      // Jangan menandai meja sebagai terverifikasi kalau backend menolak.
+      // Biarkan meja valid sebelumnya tetap aktif.
+      return false
     }
-    syncWithStorage()
   }
 
   function setPortion(portion: PortionOption) {
@@ -313,30 +297,41 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
-  function applyPromo(code: string) {
+  async function applyPromoAsync(code: string) {
     const cleanCode = code.trim().toUpperCase()
+    if (!cleanCode) return
     promoStatus.value = 'loading'
     promoMessage.value = 'Memvalidasi kode kupon...'
 
-    setTimeout(() => {
-      if (cleanCode === 'MEJAKUHEMAT' || cleanCode === 'HEMAT10') {
-        appliedDiscount.value = 10000
+    try {
+      const res = await api.validatePromo(cleanCode, totalSubtotal.value)
+      // Backend mengembalikan valid/success di root response, bukan di data.
+      if (res.success && res.valid && res.data) {
+        appliedDiscount.value = Number(res.data.discount || 0)
         promoCode.value = cleanCode
         promoStatus.value = 'success'
-        promoMessage.value = 'Kupon berhasil diterapkan! Hemat Rp 10.000'
-      } else if (cleanCode === 'WARUNGBALI') {
-        appliedDiscount.value = 5000
-        promoCode.value = cleanCode
-        promoStatus.value = 'success'
-        promoMessage.value = 'Kupon Warung Bali Dwi diterapkan! Diskon Rp 5.000'
+        promoMessage.value = res.data.description || `Diskon Rp ${appliedDiscount.value.toLocaleString('id-ID')} berhasil diterapkan!`
+        syncWithStorage()
+        return
       } else {
         appliedDiscount.value = 0
         promoCode.value = ''
         promoStatus.value = 'error'
-        promoMessage.value = 'Kode promo tidak valid atau telah kedaluwarsa.'
+        promoMessage.value = res.message || 'Kode promo tidak valid atau telah kedaluwarsa.'
+        syncWithStorage()
+        return
       }
+    } catch (e: any) {
+      appliedDiscount.value = 0
+      promoCode.value = ''
+      promoStatus.value = 'error'
+      promoMessage.value = e.data?.message || e.message || 'Kode promo tidak valid atau telah kedaluwarsa.'
       syncWithStorage()
-    }, 500)
+    }
+  }
+
+  function applyPromo(code: string) {
+    applyPromoAsync(code)
   }
 
   function removePromo() {
@@ -347,38 +342,38 @@ export const useOrderStore = defineStore('order', () => {
     syncWithStorage()
   }
 
-  // Create or update order from cart
-  function createOrder(): Order {
-    const now = new Date()
-    const expiry = new Date(Date.now() + (18 * 60 + 42) * 1000)
-    paymentDeadline.value = expiry.getTime()
-
-    // If cart is empty, add the current customized item
+  async function createOrderAsync(): Promise<Order> {
     if (cartItems.value.length === 0) {
-      addItemToCart()
+      throw new Error('Keranjang pesanan masih kosong. Silakan pilih menu terlebih dahulu.')
     }
 
-    const newOrder: Order = {
-      id: `MJK-${Date.now().toString().slice(-5)}-BA`,
-      orderNumber: `#MJK-${Date.now().toString().slice(-5)}-BA`,
-      paymentCode: `MJK${Date.now().toString().slice(-5)}BA`,
-      createdAt: now.toISOString(),
-      expiresAt: expiry.toISOString(),
-      merchant: 'Warung Bali Dwi',
-      table: { ...table.value },
-      fulfillment: 'dine_in',
-      items: [...cartItems.value],
-      item: { ...currentItemConfig.value },
-      customerNote: customerNote.value,
-      promoCode: promoCode.value || undefined,
-      pricing: { ...pricing.value },
-      paymentMethod: 'qris',
-      paymentStatus: 'pending',
-      prepStatus: 'preparing',
+    const tableCode = table.value.tableNumber || 'A12'
+    const payload = {
+      table_code: tableCode,
+      notes: customerNote.value.trim() || undefined,
+      promo_code: promoCode.value || undefined,
+      idempotency_key: `mejaku-${tableCode}-${Date.now()}`,
+      items: cartItems.value.map((it) => {
+        const numId = parseInt(it.itemId.replace(/\D/g, ''), 10)
+        return {
+          menu_item_id: isNaN(numId) || numId === 0 ? 1 : numId,
+          quantity: it.quantity,
+          portion_id: it.portion?.id ? (parseInt(String(it.portion.id).replace(/\D/g, ''), 10) || undefined) : undefined,
+          spice_level_id: it.spice?.id ? (parseInt(String(it.spice.id).replace(/\D/g, ''), 10) || undefined) : undefined,
+          addon_ids: (it.addons || []).map((a) => parseInt(String(a.id).replace(/\D/g, ''), 10)).filter((n) => !isNaN(n) && n > 0),
+        }
+      }),
     }
 
+    const res = await api.createOrder(payload)
+    if (!res.data || !res.data.order_number) {
+      throw new Error((res as any).message || 'Gagal membuat pesanan ke server.')
+    }
+
+    const newOrder = transformBackendOrder(res.data)
     currentOrder.value = newOrder
-    // Add to orderHistory
+    paymentDeadline.value = new Date(newOrder.expiresAt).getTime()
+
     const existingHistIdx = orderHistory.value.findIndex((o) => o.id === newOrder.id)
     if (existingHistIdx > -1) {
       orderHistory.value[existingHistIdx] = { ...newOrder }
@@ -390,58 +385,143 @@ export const useOrderStore = defineStore('order', () => {
     return newOrder
   }
 
+  async function fetchOrder(orderNumber: string): Promise<Order | null> {
+    try {
+      const res = await api.getOrder(orderNumber)
+      if (res.data && res.data.order_number) {
+        const order = transformBackendOrder(res.data)
+        currentOrder.value = order
+        if (order.expiresAt) {
+          paymentDeadline.value = new Date(order.expiresAt).getTime()
+        }
+        const existingHistIdx = orderHistory.value.findIndex((o) => o.id === order.id)
+        if (existingHistIdx > -1) {
+          orderHistory.value[existingHistIdx] = { ...order }
+        } else {
+          orderHistory.value.unshift({ ...order })
+        }
+        syncWithStorage()
+        return order
+      }
+    } catch (err) {
+      console.error('Gagal mengambil data pesanan backend:', err)
+    }
+    return null
+  }
+
   function setPaymentMethod(method: PaymentMethodType) {
     if (currentOrder.value) {
       currentOrder.value.paymentMethod = method
+      currentOrder.value.paymentMethodLabel =
+        method === 'bank_va' ? 'Transfer Bank / VA' : method === 'cashier' ? 'Kasir' : 'QRIS'
       syncWithStorage()
     }
   }
 
-  function simulatePaymentCheck(): Promise<boolean> {
-    isCheckingPayment.value = true
-    if (currentOrder.value) {
-      currentOrder.value.paymentStatus = 'checking'
+  function currentWibTime(): string {
+    return `${new Date()
+      .toLocaleTimeString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      .replace('.', ':')} WIB`
+  }
+
+  function finalizePaidOrder(payment?: any) {
+    if (!currentOrder.value) return
+
+    currentOrder.value.paymentStatus = 'paid'
+    if (currentOrder.value.prepStatus === 'received') {
+      currentOrder.value.prepStatus = 'preparing'
+    }
+    if (!currentOrder.value.paymentTimestamp) {
+      currentOrder.value.paymentTimestamp = payment?.paid_at
+        ? `${new Date(payment.paid_at)
+            .toLocaleTimeString('id-ID', {
+              timeZone: 'Asia/Jakarta',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+            .replace('.', ':')} WIB`
+        : currentWibTime()
+    }
+    if (payment?.method_label) {
+      currentOrder.value.paymentMethodLabel = payment.method_label
     }
 
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (currentOrder.value) {
-          currentOrder.value.paymentStatus = 'paid'
-          const now = new Date()
-          currentOrder.value.paymentTimestamp = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} WIB`
-          currentOrder.value.prepStatus = 'preparing'
+    // Kosongkan cart, tetapi JANGAN hapus currentOrder: halaman konfirmasi
+    // masih membutuhkan pricing dan item dari server.
+    cartItems.value = []
+    appliedDiscount.value = 0
+    promoCode.value = ''
+    promoStatus.value = 'idle'
+    promoMessage.value = ''
+    quantity.value = 1
 
-          // Update in order history
-          const histIdx = orderHistory.value.findIndex((o) => o.id === currentOrder.value?.id)
-          if (histIdx > -1) {
-            orderHistory.value[histIdx] = { ...currentOrder.value }
-          }
+    const histIdx = orderHistory.value.findIndex((o) => o.id === currentOrder.value?.id)
+    if (histIdx > -1) {
+      orderHistory.value[histIdx] = { ...currentOrder.value }
+    }
 
-          // Clear cart items and reset promo after transaction finishes
-          cartItems.value = []
-          appliedDiscount.value = 0
-          promoCode.value = ''
-          promoStatus.value = 'idle'
-          quantity.value = 1
-        }
-        isCheckingPayment.value = false
-        syncWithStorage()
-        resolve(true)
-      }, 1200)
-    })
+    syncWithStorage()
+  }
+
+  function applyPaymentStatus(payment: any) {
+    if (!currentOrder.value || !payment) return
+
+    if (payment.method) {
+      currentOrder.value.paymentMethod =
+        payment.method === 'bank_transfer' ? 'bank_va' : payment.method === 'cashier' ? 'cashier' : 'qris'
+      currentOrder.value.paymentMethodLabel =
+        payment.method_label ||
+        (payment.method === 'bank_transfer' ? 'Transfer Bank / VA' : payment.method === 'cashier' ? 'Kasir' : 'QRIS')
+    }
+
+    const status = payment.payment_status || payment.status
+    if (status) {
+      currentOrder.value.paymentStatus = status as PaymentStatus
+    }
+    if (payment.preparation_status) {
+      currentOrder.value.prepStatus = payment.preparation_status as PrepStatus
+    }
+    if (payment.expires_at) {
+      setPaymentDeadline(payment.expires_at)
+    }
+
+    if (status === 'paid') {
+      finalizePaidOrder(payment)
+    } else {
+      syncWithStorage()
+    }
+  }
+
+  async function refreshPaymentStatus(): Promise<any | null> {
+    if (!currentOrder.value) return null
+
+    isCheckingPayment.value = true
+    try {
+      const res = await api.getPaymentStatus(currentOrder.value.id)
+      if (res.data) {
+        applyPaymentStatus(res.data)
+        return res.data
+      }
+      return null
+    } catch {
+      return null
+    } finally {
+      isCheckingPayment.value = false
+    }
   }
 
   function setPaymentStatusDirect(status: PaymentStatus) {
     if (currentOrder.value) {
       currentOrder.value.paymentStatus = status
       if (status === 'paid') {
-        cartItems.value = []
-        appliedDiscount.value = 0
-        promoCode.value = ''
-        promoStatus.value = 'idle'
-        quantity.value = 1
+        finalizePaidOrder()
+      } else {
+        syncWithStorage()
       }
-      syncWithStorage()
     }
   }
 
@@ -462,11 +542,29 @@ export const useOrderStore = defineStore('order', () => {
     promoCode.value = ''
     promoStatus.value = 'idle'
     promoMessage.value = ''
-    table.value = { ...DEFAULT_TABLE }
+    table.value = { ...INITIAL_DEFAULT_TABLE }
     syncWithStorage()
   }
 
   // Load a historical order as the active order (so Cek Status works)
+  
+  async function syncHistoryStatus() {
+    for (const ord of orderHistory.value) {
+      if (ord.id && ord.id.startsWith("MJK-")) {
+        try {
+          const res = await api.getOrder(ord.id)
+          if (res.data) {
+            if (res.data.payment_status) ord.paymentStatus = res.data.payment_status as PaymentStatus
+            if (res.data.preparation_status) ord.prepStatus = res.data.preparation_status as PrepStatus
+          }
+        } catch {
+          // offline fallback
+        }
+      }
+    }
+    syncWithStorage()
+  }
+
   function loadOrderFromHistory(orderId: string): Order | null {
     const found = orderHistory.value.find((o) => o.id === orderId)
     if (found) {
@@ -540,7 +638,7 @@ export const useOrderStore = defineStore('order', () => {
         paymentDeadline: paymentDeadline.value,
         orderHistory: orderHistory.value,
       }
-      localStorage.setItem('mejaku_state_v3', JSON.stringify(stateToSave))
+      localStorage.setItem('mejaku_state_v4', JSON.stringify(stateToSave))
     } catch {
       // Ignore localStorage errors
     }
@@ -548,11 +646,12 @@ export const useOrderStore = defineStore('order', () => {
 
   function loadFromStorage() {
     try {
-      // Clear legacy storage versions
+      // Clear legacy storage versions with dummy data
       localStorage.removeItem('mejaku_state_v1')
       localStorage.removeItem('mejaku_state_v2')
+      localStorage.removeItem('mejaku_state_v3')
 
-      const raw = localStorage.getItem('mejaku_state_v3')
+      const raw = localStorage.getItem('mejaku_state_v4')
       if (raw) {
         const saved = JSON.parse(raw)
         if (Array.isArray(saved.cartItems)) {
@@ -564,28 +663,43 @@ export const useOrderStore = defineStore('order', () => {
         if (saved.order) currentOrder.value = saved.order
         if (saved.paymentDeadline) paymentDeadline.value = saved.paymentDeadline
 
-        // Load order history: merge saved entries with default demo so demo always appears
-        if (Array.isArray(saved.orderHistory) && saved.orderHistory.length > 0) {
-          // Ensure demo entry is always present (add if not found)
-          const hasDemoEntry = saved.orderHistory.some((o: Order) => o.id === 'MJK-51204-BA')
-          if (hasDemoEntry) {
-            orderHistory.value = saved.orderHistory
-          } else {
-            orderHistory.value = [...saved.orderHistory, ...orderHistory.value]
-          }
+        // Load order history (saring order dummy jika ada)
+        if (Array.isArray(saved.orderHistory)) {
+          orderHistory.value = saved.orderHistory.filter((o: Order) => o.id !== 'MJK-51204-BA')
         }
-        // If saved.orderHistory is missing/empty, keep the default demo entries from ref init
       } else {
-        // No saved state at all — starts with demo history + empty cart
         cartItems.value = []
+        orderHistory.value = []
       }
     } catch {
       cartItems.value = []
+      orderHistory.value = []
+    }
+  }
+
+  async function initAppAsync() {
+    // 1. Sinkronisasi meja dari database (tanpa membuat status verified palsu)
+    if (table.value.tableNumber) {
+      await setTable({ tableNumber: table.value.tableNumber })
+    }
+
+    // 2. Sinkronisasi menu awal dari backend jika belum ada item pilihan
+    try {
+      const menuRes = await api.getMenus()
+      if (menuRes.data && Array.isArray(menuRes.data) && menuRes.data.length > 0) {
+        const firstBackendItem = transformBackendMenuItem(menuRes.data[0])
+        if (currentItem.value.id === '1' && currentItem.value.name === DEFAULT_FALLBACK_ITEM.name) {
+          setActiveItem(firstBackendItem)
+        }
+      }
+    } catch {
+      // Abaikan jika offline
     }
   }
 
   // Initialize from storage (empty by default)
   loadFromStorage()
+  initAppAsync()
 
   return {
     table,
@@ -614,6 +728,8 @@ export const useOrderStore = defineStore('order', () => {
     isCheckingPayment,
     unitPrice,
     pricing,
+    orderPricing,
+    setPaymentDeadline,
     currentItemConfig,
     setPortion,
     setSpice,
@@ -624,13 +740,19 @@ export const useOrderStore = defineStore('order', () => {
     setCustomerNote,
     applyPromo,
     removePromo,
-    createOrder,
+    createOrderAsync,
+    fetchOrder,
+    applyPromoAsync,
     setPaymentMethod,
-    simulatePaymentCheck,
+    refreshPaymentStatus,
+    applyPaymentStatus,
+    finalizePaidOrder,
     setPaymentStatusDirect,
     setPrepStatus,
     resetToDefault,
     loadOrderFromHistory,
     reorderFromHistory,
+    syncHistoryStatus,
+    initAppAsync,
   }
 })

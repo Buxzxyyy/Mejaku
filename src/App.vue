@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import AiChatbot from '@/components/common/AiChatbot.vue'
+import { useOrderStore } from '@/stores/orderStore'
+
+const orderStore = useOrderStore()
+
+onMounted(() => {
+  orderStore.initAppAsync()
+})
 </script>
 
 <template>

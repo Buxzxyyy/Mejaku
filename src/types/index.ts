@@ -72,12 +72,10 @@ export interface CartItem {
 export interface TableInfo {
   tableNumber: string
   floor: number
-  venue: string
-  area: string
   isVerified: boolean
 }
 
-export type PaymentMethodType = 'qris' | 'bank_va' | 'ewallet'
+export type PaymentMethodType = 'qris' | 'bank_va' | 'cashier'
 export type PaymentStatus = 'pending' | 'checking' | 'paid' | 'failed' | 'expired'
 export type PrepStatus = 'received' | 'preparing' | 'ready' | 'completed'
 
@@ -105,6 +103,7 @@ export interface Order {
   promoCode?: string
   pricing: OrderPricing
   paymentMethod: PaymentMethodType
+  paymentMethodLabel?: string
   paymentStatus: PaymentStatus
   prepStatus: PrepStatus
   paymentTimestamp?: string

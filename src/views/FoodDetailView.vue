@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   Star,
@@ -8,31 +8,105 @@ import {
   X,
   Send,
   Sparkles,
+  ChefHat,
+  Leaf,
 } from 'lucide-vue-next'
 import AppNavbar from '@/components/common/AppNavbar.vue'
 import AppFooter from '@/components/common/AppFooter.vue'
 import AppBreadcrumb from '@/components/common/AppBreadcrumb.vue'
 import QuantityStepper from '@/components/common/QuantityStepper.vue'
 import FoodCard from '@/components/common/FoodCard.vue'
-import { MAIN_MENU_ITEM, RECOMMENDATIONS_DETAIL_ITEMS, getMenuItemBySlug } from '@/data/mockData'
+import { transformBackendMenuItem } from '@/utils/adapters'
 import { useOrderStore } from '@/stores/orderStore'
 import { formatRupiah } from '@/utils/pricing'
 import type { PortionOption, SpiceOption, AddonOption, MenuItem } from '@/types'
+import { api } from '@/api/client'
 
 const router = useRouter()
 const route = useRoute()
 const orderStore = useOrderStore()
 
-const currentItem = computed(() => {
-  const slug = route.params.slug as string
-  return getMenuItemBySlug(slug)
-})
+const currentItem = ref<MenuItem | null>(null)
+const isLoading = ref(true)
+const recommendations = ref<MenuItem[]>([])
+
+interface CustomerReview {
+  id: number
+  customer_name: string
+  rating: number
+  review?: string
+  created_at?: string
+}
+const reviewsList = ref<CustomerReview[]>([])
+const isLoadingReviews = ref(false)
 
 const activeGalleryIndex = ref(0)
 const isGalleryExpanded = ref(false)
 const thumbnailsContainer = ref<HTMLElement | null>(null)
 
+async function loadData(slug: string) {
+  isLoading.value = true
+  try {
+    const res = await api.getMenuBySlug(slug)
+    if (res.data) {
+      const item = transformBackendMenuItem(res.data)
+      currentItem.value = item
+      orderStore.setActiveItem(item)
+
+      // Ambil ulasan pelanggan nyata dari backend
+      try {
+        isLoadingReviews.value = true
+        const reviewRes = await api.getMenuReviews(item.id)
+        if (reviewRes.data && Array.isArray(reviewRes.data.reviews)) {
+          reviewsList.value = reviewRes.data.reviews
+        } else {
+          reviewsList.value = []
+        }
+      } catch {
+        reviewsList.value = []
+      } finally {
+        isLoadingReviews.value = false
+      }
+    } else {
+      currentItem.value = null
+    }
+  } catch {
+    currentItem.value = null
+  } finally {
+    isLoading.value = false
+  }
+
+  // Ambil rekomendasi menu dari backend
+  try {
+    const menuRes = await api.getMenus()
+    if (menuRes.data && Array.isArray(menuRes.data)) {
+      recommendations.value = menuRes.data
+        .map(transformBackendMenuItem)
+        .filter((m) => m.slug !== slug)
+        .slice(0, 4)
+    }
+  } catch {
+    recommendations.value = []
+  }
+}
+
+watch(
+  () => route.params.slug,
+  (newSlug) => {
+    if (newSlug) {
+      loadData(newSlug as string)
+      activeGalleryIndex.value = 0
+      isGalleryExpanded.value = false
+      if (thumbnailsContainer.value) {
+        thumbnailsContainer.value.scrollLeft = 0
+      }
+    }
+  },
+  { immediate: true }
+)
+
 const galleryImages = computed(() => {
+  if (!currentItem.value) return []
   return currentItem.value.gallery && currentItem.value.gallery.length > 0
     ? currentItem.value.gallery
     : [currentItem.value.image]
@@ -131,20 +205,6 @@ function handleThumbnailClick(idx: number, e?: MouseEvent) {
   })
 }
 
-// Sync orderStore active item and reset gallery index when item changes
-watch(
-  () => currentItem.value.id,
-  () => {
-    orderStore.setActiveItem(currentItem.value)
-    activeGalleryIndex.value = 0
-    isGalleryExpanded.value = false
-    if (thumbnailsContainer.value) {
-      thumbnailsContainer.value.scrollLeft = 0
-    }
-  },
-  { immediate: true }
-)
-
 const breadcrumbItems = computed(() => [
   { label: 'Beranda', to: '/' },
   { label: currentItem.value.merchant, to: '/menu' },
@@ -168,10 +228,11 @@ function isSpiceActive(s: SpiceOption) {
 }
 
 function isAddonChecked(a: AddonOption) {
-  return orderStore.currentAddons.some((item) => item.id === a.id)
+  return orderStore.currentAddons.some((item: AddonOption) => item.id === a.id)
 }
 
 function handleAddToCart() {
+  if (!currentItem.value) return
   orderStore.addItemToCart(
     currentItem.value,
     orderStore.currentPortion,
@@ -194,15 +255,15 @@ const userRating = ref(5)
 const userReviewText = ref('')
 const selectedTags = ref<string[]>([])
 const reviewSubmittedToast = ref(false)
-const availableRatingTags = ['Rasa Autentik 🌶️', 'Porsi Pas 👍', 'Bumbu Meresap 🤤', 'Penyajian Cepat ⚡', 'Higienis 🧼']
+const availableRatingTags = ['Rasa Autentik', 'Porsi Pas', 'Bumbu Meresap', 'Penyajian Cepat', 'Higienis']
 
 const ratingLabelText = computed(() => {
   switch (userRating.value) {
-    case 5: return '· Sempurna! ⭐⭐⭐⭐⭐'
-    case 4: return '· Sangat Enak! 👍'
-    case 3: return '· Cukup Bagus 🙂'
-    case 2: return '· Kurang Pas 😐'
-    case 1: return '· Perlu Ditingkatkan 😕'
+    case 5: return '· Sempurna!'
+    case 4: return '· Sangat Enak!'
+    case 3: return '· Cukup Bagus'
+    case 2: return '· Kurang Pas'
+    case 1: return '· Perlu Ditingkatkan'
     default: return ''
   }
 })
@@ -216,15 +277,53 @@ function toggleRatingTag(tag: string) {
   }
 }
 
-function submitRating() {
-  showRatingModal.value = false
-  reviewSubmittedToast.value = true
-  if (currentItem.value.reviewsCount !== undefined) {
-    currentItem.value.reviewsCount++
+const isSubmittingRating = ref(false)
+
+async function submitRating() {
+  if (isSubmittingRating.value || !currentItem.value) return
+  isSubmittingRating.value = true
+  const targetId = currentItem.value.id || (route.params.slug as string)
+  const combinedReview = [
+    selectedTags.value.length ? `[${selectedTags.value.join(", ")}]` : "",
+    userReviewText.value.trim()
+  ].filter(Boolean).join(" ")
+
+  try {
+    const res = await api.submitMenuRating(targetId, {
+      rating: userRating.value,
+      review: combinedReview || undefined,
+      customer_name: "Pelanggan",
+    })
+    if (res.data && res.data.average_rating !== undefined) {
+      currentItem.value.rating = Number(res.data.average_rating)
+      currentItem.value.reviewsCount = Number(res.data.rating_count)
+    } else if (currentItem.value.reviewsCount !== undefined) {
+      currentItem.value.reviewsCount++
+    }
+
+    if (combinedReview) {
+      reviewsList.value.unshift({
+        id: Date.now(),
+        customer_name: "Pelanggan",
+        rating: userRating.value,
+        review: combinedReview,
+        created_at: new Date().toISOString(),
+      })
+    }
+  } catch (err) {
+    if (currentItem.value.reviewsCount !== undefined) {
+      currentItem.value.reviewsCount++
+    }
+  } finally {
+    isSubmittingRating.value = false
+    showRatingModal.value = false
+    reviewSubmittedToast.value = true
+    userReviewText.value = ""
+    selectedTags.value = []
+    setTimeout(() => {
+      reviewSubmittedToast.value = false
+    }, 4500)
   }
-  setTimeout(() => {
-    reviewSubmittedToast.value = false
-  }, 4500)
 }
 watch(showRatingModal, (val) => {
   if (val) {
@@ -249,12 +348,26 @@ watch(showRatingModal, (val) => {
         </div>
         <div class="toast-content">
           <strong>Terima kasih atas ulasanmu!</strong>
-          <span>Rating {{ userRating }} bintang telah berhasil dicatat untuk {{ currentItem.name }}.</span>
+          <span>Rating {{ userRating }} bintang telah berhasil dicatat untuk {{ currentItem?.name || 'hidangan ini' }}.</span>
         </div>
       </div>
     </Transition>
 
-    <main class="container-app detail-main-content">
+    <main v-if="isLoading" class="container-app detail-main-content" style="text-align: center; padding: 120px 20px;">
+      <div class="empty-icon-box animate-spin-slow" style="margin: 0 auto 20px; display: inline-flex;">
+        <Sparkles :size="48" color="#C2410C" />
+      </div>
+      <h2 class="font-display" style="font-size: 1.5rem; color: #1E293B;">Memuat Detail Hidangan...</h2>
+      <p style="color: #64748B;">Mengambil resep, pilihan porsi, dan bumbu dari dapur.</p>
+    </main>
+
+    <main v-else-if="!currentItem" class="container-app detail-main-content" style="text-align: center; padding: 120px 20px;">
+      <h2 class="font-display" style="font-size: 1.5rem; color: #1E293B;">Menu Tidak Ditemukan</h2>
+      <p style="color: #64748B; margin-bottom: 24px;">Hidangan yang Anda cari tidak tersedia di katalog.</p>
+      <button type="button" class="btn-primary" @click="router.push('/menu')">Kembali ke Daftar Menu</button>
+    </main>
+
+    <main v-else class="container-app detail-main-content">
       <!-- Top Row: Breadcrumb flush left -->
       <div class="top-nav-row">
         <AppBreadcrumb :items="breadcrumbItems" class="detail-breadcrumb" />
@@ -322,7 +435,7 @@ watch(showRatingModal, (val) => {
           <!-- Dietary and Ingredients Note Panel: Placed here to fill vertical left space cleanly -->
           <div class="dietary-note-card card-surface">
             <div class="dietary-header">
-              <span class="dietary-icon">🌾</span>
+              <span class="dietary-icon"><Leaf :size="16" /></span>
               <h4 class="dietary-title">Bahan & Catatan Diet</h4>
             </div>
             <p class="dietary-body">
@@ -338,7 +451,7 @@ watch(showRatingModal, (val) => {
             <!-- Merchant Badge & Rating Header -->
             <div class="merchant-rating-row">
               <div class="merchant-badge">
-                <span class="chef-emoji">👨‍🍳</span>
+                <span class="chef-emoji"><ChefHat :size="16" /></span>
                 <span class="merchant-text">{{ currentItem.merchant.toUpperCase() }} · {{ currentItem.merchantBadge || 'REKOMENDASI' }}</span>
               </div>
 
@@ -480,6 +593,63 @@ watch(showRatingModal, (val) => {
         </div>
       </div>
 
+      <!-- REVIEWS SECTION: 100% Mengambil Ulasan Pelanggan Nyata dari Backend -->
+      <section class="reviews-section" aria-labelledby="reviews-heading">
+        <div class="reviews-header">
+          <div>
+            <span class="section-eyebrow">ULASAN PELANGGAN</span>
+            <h2 id="reviews-heading" class="font-display reviews-h2">Ulasan Pembeli MejaKu</h2>
+          </div>
+          <button
+            type="button"
+            class="btn-write-review-cta"
+            @click="showRatingModal = true"
+          >
+            <Star :size="16" class="star-icon-filled" />
+            <span>Beri Ulasan</span>
+          </button>
+        </div>
+
+        <div v-if="isLoadingReviews" class="reviews-status-msg">
+          Memuat ulasan pelanggan...
+        </div>
+
+        <div v-else-if="reviewsList.length === 0" class="reviews-status-msg reviews-empty-card">
+          Belum ada ulasan untuk hidangan ini. Jadilah yang pertama memberikan ulasan!
+        </div>
+
+        <div v-else class="reviews-cards-grid">
+          <div
+            v-for="rev in reviewsList"
+            :key="rev.id"
+            class="review-customer-card"
+          >
+            <div class="rev-card-top">
+              <div class="rev-avatar">
+                {{ rev.customer_name ? rev.customer_name.charAt(0).toUpperCase() : 'P' }}
+              </div>
+              <div class="rev-author-box">
+                <strong class="rev-author-name">{{ rev.customer_name || 'Pelanggan MejaKu' }}</strong>
+                <span v-if="rev.created_at" class="rev-date">
+                  {{ new Date(rev.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) }}
+                </span>
+              </div>
+              <div class="rev-stars-row">
+                <Star
+                  v-for="s in 5"
+                  :key="s"
+                  :size="14"
+                  :class="s <= rev.rating ? 'star-filled' : 'star-muted'"
+                />
+              </div>
+            </div>
+            <p v-if="rev.review" class="rev-comment">
+              "{{ rev.review }}"
+            </p>
+          </div>
+        </div>
+      </section>
+
       <!-- RECOMMENDATIONS SECTION: Lengkapi Hidanganmu (Aligned with Left Column & Grid) -->
       <section class="recommendations-section" aria-labelledby="rec-title">
         <div class="rec-header">
@@ -489,7 +659,7 @@ watch(showRatingModal, (val) => {
 
         <div class="recommendations-grid">
           <FoodCard
-            v-for="item in RECOMMENDATIONS_DETAIL_ITEMS"
+            v-for="item in recommendations"
             :key="item.id"
             :item="item"
             @select="handleRecommendationClick"
@@ -507,7 +677,7 @@ watch(showRatingModal, (val) => {
             <div class="modal-header">
               <div>
                 <h3 id="rating-modal-title" class="font-display modal-title">Beri Rating Hidangan</h3>
-                <p class="modal-sub">{{ currentItem.name }} · {{ currentItem.merchant }}</p>
+                <p class="modal-sub">{{ currentItem?.name }} · {{ currentItem?.merchant }}</p>
               </div>
               <button type="button" class="close-btn" aria-label="Tutup modal" @click="showRatingModal = false">
                 <X :size="20" />
@@ -1608,5 +1778,132 @@ watch(showRatingModal, (val) => {
     padding: 10px 10px !important;
     font-size: 12px !important;
   }
+}
+
+/* Reviews Section */
+.reviews-section {
+  margin-top: 48px;
+  padding-top: 36px;
+  border-top: 1px solid var(--border);
+}
+
+.reviews-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.reviews-h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 4px;
+}
+
+.btn-write-review-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background-color: var(--surface);
+  border: 1.5px solid var(--border);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-write-review-cta:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.reviews-status-msg {
+  padding: 24px;
+  text-align: center;
+  background-color: var(--surface);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 14px;
+  border: 1px dashed var(--border);
+}
+
+.reviews-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.review-customer-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rev-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rev-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.rev-author-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rev-author-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rev-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.rev-stars-row {
+  display: flex;
+  gap: 2px;
+}
+
+.star-filled {
+  fill: #F59E0B;
+  color: #F59E0B;
+}
+
+.star-muted {
+  fill: transparent;
+  color: #CBD5E1;
+}
+
+.rev-comment {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0;
 }
 </style>
