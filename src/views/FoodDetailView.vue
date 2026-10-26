@@ -207,8 +207,8 @@ function handleThumbnailClick(idx: number, e?: MouseEvent) {
 
 const breadcrumbItems = computed(() => [
   { label: 'Beranda', to: '/' },
-  { label: currentItem.value.merchant, to: '/menu' },
-  { label: currentItem.value.name },
+  { label: currentItem.value?.merchant || 'Pujasera', to: '/menu' },
+  { label: currentItem.value?.name || 'Detail' },
 ])
 
 const currentUnitPrice = computed(() => {
